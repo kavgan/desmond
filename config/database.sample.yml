@@ -1,0 +1,8 @@
+# database to be used for general user data of Polizei
+development:
+  adapter: postgresql
+  host: localhost
+  database: database
+  port: 5432
+  username: username
+  password: password

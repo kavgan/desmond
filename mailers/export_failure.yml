@@ -1,0 +1,3 @@
+subject: "ERROR: Export '<%= @name %>' failed"
+body: "Sorry, your export '<%= @name %>' failed.
+The following error description might be helpful: '<%= @error %>'"

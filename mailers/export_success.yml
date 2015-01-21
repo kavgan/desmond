@@ -1,0 +1,3 @@
+subject: "Export '<%= @name %>' succeeded"
+body: "Congrats! Your export '<%= @name %>' succeeded.
+The file can be downloaded here (use right-click -> Save link as): <%= @url %>"
