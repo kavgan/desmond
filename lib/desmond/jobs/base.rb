@@ -22,7 +22,11 @@ module Desmond
     attr_accessor :run_id
 
     ##
-    # test job, returns sample data which would be produced by the job
+    # test job, returns database rows directly fetched by the query
+    #
+    # +user_id+: unique identifier of the application's user running this test
+    # +query+: query to run for this test
+    # +options+: depends on the implementation of the job
     #
     def self.test(user_id, query, options={})
       raise NotImplementedError
@@ -42,6 +46,11 @@ module Desmond
     # this method will be called to execute this job.
     # needs to be overriden by specific job, making sure to call
     # this `super` method as the first statement.
+    #
+    # +job_id+: unique identifier for this type of job from calling application for later identification
+    # +user_id+: unique identifier of the application's user running this export for later identification
+    # +query+: query to run for export
+    # +options+: depends on the implementation of the job
     #
     def run(job_id, user_id, query, options={})
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance

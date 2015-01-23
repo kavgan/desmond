@@ -7,12 +7,20 @@ require 'pony'
 # not loaded automatically
 require 'active_support/hash_with_indifferent_access'
 
-require_relative 'desmond/csv'
 require_relative 'desmond/log_censor'
+
+require_relative 'desmond/streams/base'
+require_relative 'desmond/streams/csv'
+require_relative 'desmond/streams/database'
+require_relative 'desmond/streams/s3'
+
 require_relative 'desmond/job_run_finders'
 require_relative 'desmond/jobs/base'
 require_relative 'desmond/jobs/export'
+
 require_relative 'desmond/models/job_run'
+
+# TODO support for app_id in config/desmond.yml, so that export have actual app prefixed
 
 class DesmondConfig
   ##
