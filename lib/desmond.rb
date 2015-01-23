@@ -20,8 +20,6 @@ require_relative 'desmond/jobs/export'
 
 require_relative 'desmond/models/job_run'
 
-# TODO support for app_id in config/desmond.yml, so that export have actual app prefixed
-
 class DesmondConfig
   ##
   # determins the environment we are running in:
@@ -48,6 +46,12 @@ class DesmondConfig
     @config
   end
 
+  ##
+  # retrieves the app_id from the config, defaults to 'desmond'
+  #
+  def self.app_id
+    config['app_id'] || 'desmond'
+  end
   ##
   # retrieve the location of the ActiveRecord database configuration file.
   # should really only be used when developing desmond, otherwise the using app

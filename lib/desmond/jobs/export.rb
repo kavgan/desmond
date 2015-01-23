@@ -25,7 +25,7 @@ module Desmond
       begin
         Que.log level: :info, msg: "Starting to test job for user #{user_id}"
         time = Time.now.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-        export_id = "desmond_validate_#{user_id}_#{time}"
+        export_id = "#{DesmondConfig.app_id}_validate_#{user_id}_#{time}"
 
         # read the test rows
         db_reader = database_reader(export_id, query, {fetch_size: TEST_SIZE}.merge(options))
@@ -79,7 +79,7 @@ module Desmond
         Que.log level: :info, msg: "Starting to execute export job #{job_id} for user #{user_id}"
         super(job_id, user_id, query, options)
         time = Time.now.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-        export_id = "desmond_export_#{job_id}_#{user_id}_#{time}"
+        export_id = "#{DesmondConfig.app_id}_export_#{job_id}_#{user_id}_#{time}"
         # check options
         raise 'No database options!' if options['db'].nil?
         raise 'No s3 options!' if options['s3'].nil?

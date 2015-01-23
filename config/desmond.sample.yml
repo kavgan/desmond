@@ -1,3 +1,4 @@
+app_id: desmond # id of the app using desmond
 database: config/database.yml # where does the database configuration reside
 mail: config/mail.yml # where is the mail server configuration
 mail_export_success: app/views/mailers/export_success.yml # template for successful export mails
