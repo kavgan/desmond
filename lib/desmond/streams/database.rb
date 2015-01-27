@@ -16,6 +16,8 @@ module Desmond
         #
         def initialize(name, query, options={})
           super()
+          raise 'No name parameter' if name.nil?
+          raise 'No query parameter' if query.nil?
           @name = name
           @query = query
           @options = {
@@ -65,7 +67,7 @@ module Desmond
         end
 
         ##
-        # creates an instance of Streams::CSV:CSVReader wrapped around this class,
+        # creates an instance of Streams::CSV:CSVStringReader wrapped around this class,
         # letting you read csv from the database
         #
         # the 'db' key of +options+ is passed to the Postgres database reader.
@@ -73,7 +75,7 @@ module Desmond
         # for supported and required options.
         #
         def self.create_csv_reader(name, query, options={})
-          Streams::CSV::CSVReader.new(self.new(name, query, options[:db]), options[:csv])
+          Streams::CSV::CSVStringReader.new(self.new(name, query, options[:db]), options[:csv])
         end
 
         protected

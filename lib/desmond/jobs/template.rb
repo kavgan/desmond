@@ -6,9 +6,9 @@ module Desmond
     ##
     # method specifying what should be done at execution
     #
-    def run(job_id, user_id, query, options={})
+    def run(job_id, user_id, options={})
       # make sure to call super before running your job
-      super(job_id, user_id, query, options)
+      super(job_id, user_id, options)
 
       begin
         ActiveRecord::Base.transaction do

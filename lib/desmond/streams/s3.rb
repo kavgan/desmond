@@ -4,13 +4,68 @@ module Desmond
   module Streams
     module S3
       ##
-      # writes to S3 using bucket +bucket+ and key +name+.
+      # reads from S3 using bucket +bucket+ and key +key+.
       # All +options+ valid for AWS::S3.new are supported.
       #
-      class S3Writer
-        def initialize(bucket, name, options={})
+      class S3Reader < Streams::Reader
+        def initialize(bucket, key, options={})
+          @bucket = bucket
+          @key = key
+          @options = options
+          @aws = AWS::S3.new(@options)
+          @reader = recreate
+        end
+
+        def credentials
+          c = @aws.config
+          "aws_access_key_id=#{c.access_key_id};aws_secret_access_key=#{c.secret_access_key}"
+        end
+
+        def read
+          @reader.read
+        end
+
+        def each_line(*args)
+          @reader.each_line(*args)
+        end
+
+        def eof?
+          @reader.eof?
+        end
+
+        def rewind
+          @reader = recreate
+        end
+
+        def close
+          @reader.close
+        end
+
+        private
+          def recreate
+            o = @aws.buckets[@bucket].objects[@key]
+            raise "#{@bucket}/#{@key} does not exist!" if not(o.exists?)
+            # no other way to stream from S3 unfortunately ...
+            reader, writer = IO.pipe
+            Thread.new do
+              begin
+                o.read { |chunk| writer.write chunk }
+              ensure
+                writer.close
+              end
+            end
+            reader
+          end
+      end
+
+      ##
+      # writes to S3 using bucket +bucket+ and key +key+.
+      # All +options+ valid for AWS::S3.new are supported.
+      #
+      class S3Writer < Streams::Writer
+        def initialize(bucket, key, options={})
           # create empty s3 object
-          @o = AWS::S3.new(options).buckets[bucket].objects.create(name, '')
+          @o = AWS::S3.new(options).buckets[bucket].objects.create(key, '')
         end
 
         ##

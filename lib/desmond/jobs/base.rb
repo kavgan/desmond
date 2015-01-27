@@ -22,24 +22,25 @@ module Desmond
     attr_accessor :run_id
 
     ##
-    # test job, returns database rows directly fetched by the query
+    # test the job
     #
     # +user_id+: unique identifier of the application's user running this test
-    # +query+: query to run for this test
     # +options+: depends on the implementation of the job
     #
-    def self.test(user_id, query, options={})
+    def self.test(user_id, options={})
       raise NotImplementedError
     end
 
     ##
     # queue this job for execution
     #
-    def self.enqueue(job_id, user_id, query, options={})
+    # see `run` for parameter documentation
+    #
+    def self.enqueue(job_id, user_id, options={})
       e = Desmond::JobRun.create(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
-      super(job_id, user_id, query, options.merge({ _run_id: e.id }))
+      super(job_id, user_id, options.merge({ _run_id: e.id }))
     end
 
     ##
@@ -49,10 +50,9 @@ module Desmond
     #
     # +job_id+: unique identifier for this type of job from calling application for later identification
     # +user_id+: unique identifier of the application's user running this export for later identification
-    # +query+: query to run for export
     # +options+: depends on the implementation of the job
     #
-    def run(job_id, user_id, query, options={})
+    def run(job_id, user_id, options={})
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
       Desmond::JobRun.find(self.run_id).update(status: 'running', executed_at: Time.now)
     end
