@@ -32,7 +32,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def que_command
-      fetch(:que_command, "bundle exec ./scripts/que")
+      fetch(:que_command, "bundle exec desmond")
     end
 
     def pid_dir
