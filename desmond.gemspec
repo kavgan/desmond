@@ -18,5 +18,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'que', '~> 0.9' # background jobs
   s.add_runtime_dependency 'daemons', '~> 1.1' # background processes
   s.add_runtime_dependency 'aws-sdk-v1', '~> 1' # s3 access (v2 is still in preview release)
-  s.add_runtime_dependency 'pony', '~> 1' # sending emails'
+  s.add_runtime_dependency 'pony', '~> 1' # sending emails
+  s.add_runtime_dependency 'erubis', '~> 2.7' # email templates
 end
