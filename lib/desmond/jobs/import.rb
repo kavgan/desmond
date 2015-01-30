@@ -29,7 +29,6 @@ module Desmond
         create_table_sql  = "CREATE TABLE #{full_table_name} ("
         create_table_sql += headers.map { |header| "\"#{header}\" VARCHAR" }.join(',')
         create_table_sql += ");"
-        p create_table_sql
 
         # create table in database
         conn = self.class.dedicated_connection(options[:db])
