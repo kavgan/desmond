@@ -63,6 +63,8 @@ module Desmond
     # +details+ will be saved for this run in the database.
     #
     def failed(mail={}, details={})
+      mail ||= {}
+      details ||= {}
       delete_job(false, details)
       mail_failure(mail)
     end
@@ -73,6 +75,8 @@ module Desmond
     # +details+ will be saved for this run in the database.
     #
     def done(mail={}, details={})
+      mail ||= {}
+      details ||= {}
       delete_job(true, details)
       mail_success(mail)
     end
