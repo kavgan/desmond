@@ -36,6 +36,14 @@ module Desmond
         conn.exec(create_table_sql)
         copy_sql = "COPY \"#{table_name}\" FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
         conn.exec(copy_sql)
+
+        self.done()
+      rescue => e
+        # error occurred
+        details = { error: e.message }
+        Que.log level: :error, exception: details[:error]
+        Que.log level: :error, backtrace: e.backtrace.join("\n ")
+        self.failed(nil, details)
       ensure
         Que.log level: :info, msg: "Done executing import job #{job_id} for user #{user_id}"
       end
