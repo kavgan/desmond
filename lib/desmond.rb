@@ -62,6 +62,13 @@ class DesmondConfig
     load_config_file(config['database'] || 'config/database.yml')
   end
   ##
+  # determines whether the tasks are allowed to use the configured
+  # connection instead of using the users credentials
+  #
+  def self.system_connection_allowed?
+    config['system_connection_allowed'] || false
+  end
+  ##
   # loads the mail configuration
   #
   def self.mail

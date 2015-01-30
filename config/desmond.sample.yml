@@ -1,5 +1,7 @@
 app_id: desmond # id of the app using desmond
 database: config/database.yml # where does the database configuration reside
+system_connection_allowed: false # whether the tasks are allowed to use the configured
+                                 # connection instead of using the users credentials
 mail: config/mail.yml # where is the mail server configuration
 mail_export_success: app/views/mailers/export_success.yml # template for successful export mails
 mail_export_failure: app/views/mailers/export_failure.yml # template for failed export mails

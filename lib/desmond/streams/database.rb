@@ -123,6 +123,7 @@ module Desmond
             username = options[:username]
             password = options[:password]
             raise 'No connection id!' if ar_config.nil? || ar_config.empty?
+            # TODO check DesmondConfig.system_connection_allowed?
             raise 'No db connection username!' if username.nil? || username.empty?
             raise 'No db connection password!' if password.nil? || password.empty?
             # construct connection config with the provided credentials
