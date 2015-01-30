@@ -10,7 +10,8 @@ if __FILE__ == $0
       connection_id: ARGV[0],
       username: ARGV[1],
       password: ARGV[2],
-      table: 'tobias.importtest',
+      schema: 'tobias',
+      table: 'importtest',
       dropifexists: true
     },
     s3: {

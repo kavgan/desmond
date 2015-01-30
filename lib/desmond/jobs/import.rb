@@ -12,7 +12,9 @@ module Desmond
         raise 'No s3 options!' if options[:s3].nil?
         bucket = options[:s3][:bucket]
         s3_key = options[:s3][:key]
+        schema_name = options[:db][:schema]
         table_name = options[:db][:table]
+        full_table_name = "\"#{schema_name}\".\"#{table_name}\""
 
         # open S3 CSV file
         s = Desmond::Streams::S3::S3Reader.new(
@@ -24,17 +26,18 @@ module Desmond
         raise 'No CSV headers!' if headers.empty?
 
         # construct create table query out of CSV headers
-        create_table_sql  = "CREATE TABLE \"#{table_name}\"("
+        create_table_sql  = "CREATE TABLE #{full_table_name} ("
         create_table_sql += headers.map { |header| "\"#{header}\" VARCHAR" }.join(',')
         create_table_sql += ");"
+        p create_table_sql
 
         # create table in database
         conn = self.class.dedicated_connection(options[:db])
         if options[:db][:dropifexists]
-          conn.exec("DROP TABLE IF EXISTS \"#{table_name}\";")
+          conn.exec("DROP TABLE IF EXISTS #{full_table_name};")
         end
         conn.exec(create_table_sql)
-        copy_sql = "COPY \"#{table_name}\" FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
+        copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
         conn.exec(copy_sql)
 
         self.done()
