@@ -34,7 +34,7 @@ module Desmond
           super()
           @options = options.symbolize_keys
           @first_row_headers = false
-          if @options[:headers] == :first_row
+          if @options[:headers] == :first_row || @options[:headers] == 'first_row'
             @first_row_headers = true
             @options[:headers] = nil
           end
