@@ -12,10 +12,13 @@ module Desmond
     # see `BaseJob` for information on arguments except +options+.
     #
     # the following +options+ are required:
-    # - connection_id: ActiveRecord connection id used for everything except username & password
-    # - username
-    # - password
-    # - query
+    # - connection_id: ActiveRecord connection id to be used
+    # - query: query to be exported
+    #
+    # the following options are required when `DesmondConfig.system_connection_allowed?` is false:
+    # - username: database username
+    # - password: database password
+    #
     # the following +options+ are additionally supported:
     # - fetch_size: how many rows are retrieved in one iteration
     # - timeout: connection timeout to database
@@ -50,14 +53,17 @@ module Desmond
     #
     # the following +options+ are required:
     # - db
-    #   - connection_id: ActiveRecord connection id used for everything except username & password
-    #   - username
-    #   - password
-    #   - query
+    #   - connection_id: ActiveRecord connection id to be used
+    #   - query: query to be exported
     # - s3
-    #   - bucket
+    #   - bucket: bucket where exported csv filfe should be stored
     #   - access_key_id, if not configured globally
     #   - secret_access_key, if not configured globally
+    #
+    # the following options are required when `DesmondConfig.system_connection_allowed?` is false:
+    # - db
+    #   - username: database username
+    #   - password: database password
     #
     # the following +options+ are additionally supported:
     # - db
@@ -81,13 +87,13 @@ module Desmond
         Que.log level: :info, msg: "Starting to execute export job #{job_id} for user #{user_id}"
         options = options.deep_symbolize_keys
         super(job_id, user_id, options)
-        time = Time.now.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-        export_id = "#{DesmondConfig.app_id}_export_#{job_id}_#{user_id}_#{time}"
+        job_run_filename = job_run.filename
+        export_id = File.basename(job_run_filename, '.*')
         # check options
         raise 'No database options!' if options[:db].nil?
         raise 'No s3 options!' if options[:s3].nil?
         s3_bucket = options[:s3][:bucket]
-        s3_key = "#{export_id}.csv"
+        s3_key = job_run_filename
         raise 'No S3 export bucket!' if s3_bucket.nil? || s3_bucket.empty?
 
         csv_reader = nil

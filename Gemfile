@@ -7,3 +7,9 @@ gem 'daemons' # background processes
 gem 'aws-sdk-v1' # s3 access (v2 is still in preview release)
 gem 'pony' # sending emails
 gem 'erubis' # mail templates
+
+group :development, :test do
+  gem 'rspec'
+  gem 'simplecov', :require => false
+  gem 'sinatra-activerecord' # ActiveRecord initialization and automatic rake tasks
+end

@@ -7,7 +7,8 @@ require 'pony'
 # not loaded automatically
 require 'active_support/hash_with_indifferent_access'
 
-require_relative 'desmond/log_censor'
+require_relative 'desmond/utils/pg_util'
+require_relative 'desmond/utils/log_censor'
 
 require_relative 'desmond/streams/base'
 require_relative 'desmond/streams/csv'
@@ -115,4 +116,5 @@ DesmondConfig.mail
 
 # configure que
 Que.connection = ActiveRecord
-Que.mode = :off
+Que.mode = :sync if DesmondConfig.environment == :test
+Que.mode = :off if DesmondConfig.environment != :test

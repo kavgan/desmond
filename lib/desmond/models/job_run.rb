@@ -30,6 +30,14 @@ module Desmond
     end
 
     ##
+    # filename of the export file
+    #
+    def filename
+      time = self.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
+      "#{DesmondConfig.app_id}_export_#{self.job_id}_#{self.user_id}_#{time}.csv"
+    end
+
+    ##
     # is this run still queued?
     #
     def queued?

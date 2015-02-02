@@ -15,7 +15,7 @@ if __FILE__ == $0
       dropifexists: true
     },
     s3: {
-      bucket_name: 'amg-tobi-test',
+      bucket: 'amg-tobi-test',
       key: 'polizei_export_MyApp_JobId_UserId_2015_01_23T15_30_39_060Z.csv',
       access_key_id: ARGV[3],
       secret_access_key: ARGV[4]

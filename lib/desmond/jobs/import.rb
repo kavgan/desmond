@@ -3,6 +3,39 @@ module Desmond
   # job importing data into PostgreSQL compatible databases (e.g. AWS RedShift) from S3
   #
   class ImportJob < BaseJob
+    ##
+    # runs an import
+    # see `BaseJob` for information on arguments except +options+.
+    #
+    # the following +options+ are required:
+    # - db
+    #   - connection_id: ActiveRecord connection id used to connect to database
+    #   - schema: schema of import table
+    #   - table: name of import table
+    # - s3
+    #   - bucket: bucket of csv file to be imported
+    #   - key: key of csv file to be imported
+    #   - access_key_id, if not configured globally
+    #   - secret_access_key, if not configured globally
+    #
+    # the following options are required when `DesmondConfig.system_connection_allowed?` is false:
+    # - db
+    #   - username: database username
+    #   - password: database password
+    #
+    # the following +options+ are additionally supported:
+    # - db
+    #   - dropifexists: drop import table if it exists
+    #   - timeout: connection timeout to database
+    # - s3
+    #   - everything supported by AWS::S3.new
+    # - csv (see ruby's CSV documentation)
+    #   - col_sep
+    #   - row_sep
+    #   - headers
+    #   - return_headers
+    #   - quote_char
+    #
     def run(job_id, user_id, options={})
       begin
         Que.log level: :info, msg: "Starting to execute import job #{job_id} for user #{user_id}"
@@ -52,28 +85,8 @@ module Desmond
     end
 
     private
-      # TODO refactor into PGUtil and share with DatabaseStreams
       def self.dedicated_connection(options)
-        ar_config = options[:connection_id]
-        username = options[:username]
-        password = options[:password]
-        conf = ActiveRecord::Base.configurations[ar_config.to_s]
-        raise 'No connection id!' if ar_config.nil? || ar_config.empty?
-        if not(DesmondConfig.system_connection_allowed?)
-          raise 'No db connection username!' if username.nil? || username.empty?
-          raise 'No db connection password!' if password.nil? || password.empty?
-        else
-          username ||= conf['username']
-          password ||= conf['password']
-        end
-        # construct connection config with the provided credentials
-        raise "Connection configuration '#{ar_config}' not found" if conf.nil?
-        PG.connect(host: conf['host'],
-          port: conf['port'],
-          user: username,
-          password: password,
-          dbname: conf['database'],
-          connect_timeout: options['timeout'])
+        PGUtil.dedicated_connection(options)
       end
   end
 end

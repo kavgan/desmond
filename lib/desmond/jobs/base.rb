@@ -36,11 +36,14 @@ module Desmond
     #
     # see `run` for parameter documentation
     #
+    # returns a JobRun instance
+    #
     def self.enqueue(job_id, user_id, options={})
       e = Desmond::JobRun.create(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
       super(job_id, user_id, options.merge({ _run_id: e.id }))
+      e
     end
 
     ##
@@ -82,10 +85,14 @@ module Desmond
     end
 
     private
+      def job_run
+        Desmond::JobRun.find(self.run_id)
+      end
+
       def delete_job(success, details={})
         status = 'done'
         status = 'failed' if not(success)
-        destroy
+        destroy if Que.mode != :sync # Que doesn't in the database in sync mode
         Desmond::JobRun.find(self.run_id).update(status: status, details: details, completed_at: Time.now)
       end
 

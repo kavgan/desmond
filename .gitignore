@@ -36,3 +36,4 @@ build/
 .DS_Store
 database.yml
 mail.yml
+tests.yml
