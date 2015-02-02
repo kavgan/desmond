@@ -43,7 +43,8 @@ module Desmond
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
       super(job_id, user_id, options.merge({ _run_id: e.id }))
-      e
+      # requery from database, since it was already updated in sync mode
+      Desmond::JobRun.find(e.id)
     end
 
     ##

@@ -55,6 +55,16 @@ class DesmondConfig
     config['app_id'] || 'desmond'
   end
   ##
+  # change 'app_id' to +value+
+  # only use this in the 'test' environment otherwise the change
+  # will not be shared with the worker processes, use the desmond.yml
+  # configuration file instead
+  #
+  def self.app_id=(value)
+    raise 'Do not use this DesmondConfig.app_id= outside of "test"' if self.environment != :test
+    config['app_id'] = value
+  end
+  ##
   # retrieve the location of the ActiveRecord database configuration file.
   # should really only be used when developing desmond, otherwise the using app
   # should establish the ActiveRecord connections
@@ -68,6 +78,16 @@ class DesmondConfig
   #
   def self.system_connection_allowed?
     config['system_connection_allowed'] || false
+  end
+  ##
+  # change 'system_connection_allowed' to +value+
+  # only use this in the 'test' environment otherwise the change
+  # will not be shared with the worker processes, use the desmond.yml
+  # configuration file instead
+  #
+  def self.system_connection_allowed=(value)
+    raise 'Do not use this DesmondConfig.system_connection_allowed= outside of "test"' if self.environment != :test
+    config['system_connection_allowed'] = value
   end
   ##
   # loads the mail configuration

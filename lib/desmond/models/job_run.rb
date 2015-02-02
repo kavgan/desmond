@@ -71,5 +71,9 @@ module Desmond
     def done?
       self['status'] == STATUS_SUCCESS
     end
+
+    def error
+      self['details']['error']
+    end
   end
 end

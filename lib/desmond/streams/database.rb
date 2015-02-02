@@ -23,6 +23,7 @@ module Desmond
           @options = {
             fetch_size: 1000,
           }.merge((options || {}).symbolize_keys)
+          raise '"fetch_size" needs to be greater than 0' if @options[:fetch_size] <= 0
           # prepare queries
           @initq = "BEGIN; DECLARE #{@name} CURSOR FOR #{@query};"
           @fetchq = "FETCH FORWARD #{@options[:fetch_size].to_i} FROM #{@name};"
