@@ -124,10 +124,6 @@ describe Desmond::ExportJob do
     expect(run_test).to eq({columns: ['id', 'txt'], rows: [['0', 'null'], ['1', 'eins']]})
   end
 
-  it 'should be able to return test data' do
-    expect(run_test).to eq({columns: ['id', 'txt'], rows: [['0', 'null'], ['1', 'eins']]})
-  end
-
   it 'should complain if query is missing' do
     expect(run_test({ query: nil })).to eq({error: 'Arguments cannot be nil'})
   end

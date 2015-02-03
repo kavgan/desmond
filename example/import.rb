@@ -4,8 +4,10 @@ require_relative '../lib/desmond'
 Que.mode = :sync
 Que.logger = Logger.new STDOUT
 
-if __FILE__ == $0
-  Desmond::ImportJob.enqueue(1, 1, {
+if __FILE__ == $PROGRAM_NAME
+  Desmond::ImportJob.enqueue(
+    1,
+    1,
     db: {
       connection_id: ARGV[0],
       username: ARGV[1],
@@ -23,5 +25,5 @@ if __FILE__ == $0
     csv: {
       headers: :first_row
     }
-  })
+  )
 end

@@ -7,6 +7,9 @@ module Desmond
       base.send :extend, ClassMethods
     end
 
+    ##
+    # class methods helping find a particular job run
+    #
     module ClassMethods
       ##
       # get the last +n+ runs for the given +job_id+.
@@ -25,12 +28,13 @@ module Desmond
       end
 
       private
-        def job_runs(job_id, status=nil, user_id=nil)
-          q = JobRun.where(job_id: job_id, job_class: self.name)
-          q = q.where(status: status) unless status.nil?
-          q = q.where(user_id: user_id) unless user_id.nil?
-          q
-        end
+
+      def job_runs(job_id, status=nil, user_id=nil)
+        q = JobRun.where(job_id: job_id, job_class: self.name)
+        q = q.where(status: status) unless status.nil?
+        q = q.where(user_id: user_id) unless user_id.nil?
+        q
+      end
     end
   end
 end

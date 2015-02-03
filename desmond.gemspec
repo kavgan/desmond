@@ -6,7 +6,11 @@ Gem::Specification.new do |s|
   s.description = 'Exporting and importing a lot of data out of Amazon RedShift'
   s.authors     = ['Tobias Thiel']
   s.email       = 'tobi@amg.tv'
-  s.files       = ['lib/desmond.rb', 'lib/desmond/rake.rb', 'lib/desmond/capistrano.rb']
+  s.files       = [
+    'lib/desmond.rb',
+    'lib/desmond/rake.rb',
+    'lib/desmond/capistrano.rb'
+  ]
   s.homepage    = 'http://amg.tv'
   s.license     = 'MIT'
 

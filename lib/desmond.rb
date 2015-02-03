@@ -22,6 +22,9 @@ require_relative 'desmond/jobs/import'
 
 require_relative 'desmond/models/job_run'
 
+##
+# manages the gem's configuration
+#
 class DesmondConfig
   ##
   # determins the environment we are running in:
@@ -61,7 +64,7 @@ class DesmondConfig
   # configuration file instead
   #
   def self.app_id=(value)
-    raise 'Do not use this DesmondConfig.app_id= outside of "test"' if self.environment != :test
+    fail 'Do not use this DesmondConfig.app_id= outside of "test"' if self.environment != :test
     config['app_id'] = value
   end
   ##
@@ -86,7 +89,7 @@ class DesmondConfig
   # configuration file instead
   #
   def self.system_connection_allowed=(value)
-    raise 'Do not use this DesmondConfig.system_connection_allowed= outside of "test"' if self.environment != :test
+    fail 'Do not use this DesmondConfig.system_connection_allowed= outside of "test"' if self.environment != :test
     config['system_connection_allowed'] = value
   end
   ##
@@ -95,33 +98,36 @@ class DesmondConfig
   def self.mail
     mail_config = load_config_file(config['mail'] || 'config/mail.yml')
     Pony.options = {
-      :from => mail_config['username'],
-      :via => :smtp,
-      :via_options => mail_config.symbolize_keys
+      from: mail_config['username'],
+      via: :smtp,
+      via_options: mail_config.symbolize_keys
     }
   end
   ##
   # retrieves the mail template for successful exports
   #
   def self.mail_export_success(options={})
-    file = config['mail_export_success'] || 'mailers/export_success.yml'
-    @mail_export_success = load_config_file(file) if @mail_export_success.nil?
-    @mail_export_success.merge(options)
+    mail_options('mail_export_success', 'mailers/export_success.yml', options)
   end
   ##
   # retrieves the mail template for failed exports
   #
   def self.mail_export_failure(options={})
-    file = config['mail_export_failure'] || 'mailers/export_failure.yml'
-    @mail_export_failure = load_config_file(file) if @mail_export_failure.nil?
-    @mail_export_failure.merge(options)
+    mail_options('mail_export_failure', 'mailers/export_failure.yml', options)
   end
 
-  private
-    def self.load_config_file(file)
-      return {} if not(File.exists?(file))
-      return ActiveSupport::HashWithIndifferentAccess.new(YAML.load_file(file))
-    end
+  def self.load_config_file(file)
+    return {} unless File.exist?(file)
+    ActiveSupport::HashWithIndifferentAccess.new(YAML.load_file(file))
+  end
+  private_class_method :load_config_file
+
+  def self.mail_options(key, default_file, options={})
+    file = config[key] || default_file
+    @mail_export_success = load_config_file(file) if @mail_export_success.nil?
+    @mail_export_success.merge(options)
+  end
+  private_class_method :mail_options
 end
 
 # configure ActiveRecord, but the app using us should really do this,

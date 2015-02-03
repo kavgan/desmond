@@ -1,3 +1,5 @@
+# rubocop:disable Lint/UnreachableCode
+
 module Desmond
   ##
   # template for custom jobs
@@ -13,15 +15,14 @@ module Desmond
       begin
         ActiveRecord::Base.transaction do
           # do the job
-          raise 'Nothing'
+          fail 'Nothing'
 
           # everything is done, remove the job
-          done({})
+          done({}, {})
         end
       rescue => e
         # mark job as failed and remove it
-        failed({ error: e.message, backtrace: e.backtrace.join("\n ") })
-        raise e
+        failed({}, error: e.message, backtrace: e.backtrace.join("\n "))
       end
     end
   end

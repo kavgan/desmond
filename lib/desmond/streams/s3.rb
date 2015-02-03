@@ -42,20 +42,21 @@ module Desmond
         end
 
         private
-          def recreate
-            o = @aws.buckets[@bucket].objects[@key]
-            raise "#{@bucket}/#{@key} does not exist!" if not(o.exists?)
-            # no other way to stream from S3 unfortunately ...
-            reader, writer = IO.pipe
-            Thread.new do
-              begin
-                o.read { |chunk| writer.write chunk }
-              ensure
-                writer.close
-              end
+
+        def recreate
+          o = @aws.buckets[@bucket].objects[@key]
+          fail "#{@bucket}/#{@key} does not exist!" unless o.exists?
+          # no other way to stream from S3 unfortunately ...
+          reader, writer = IO.pipe
+          Thread.new do
+            begin
+              o.read { |chunk| writer.write chunk }
+            ensure
+              writer.close
             end
-            reader
           end
+          reader
+        end
       end
 
       ##
@@ -81,21 +82,19 @@ module Desmond
         # S3 object is deleted on error
         #
         def write_from(reader)
-          begin
-            # we have no idea of the file size, but we're gonna force aws to upload using multipart upload,
-            # just so the whole file won't be in memory at some point
-            @o.write(estimated_content_length: AWS.config.s3_multipart_threshold + 1) do |buffer, bytes|
-              while bytes > 0 && not(reader.eof?)
-                t = reader.read
-                buffer.write(t)
-                bytes -= t.size
-              end
+          # we have no idea of the file size, but we're gonna force aws to upload using multipart upload,
+          # just so the whole file won't be in memory at some point
+          @o.write(estimated_content_length: AWS.config.s3_multipart_threshold + 1) do |buffer, bytes|
+            while bytes > 0 && !reader.eof?
+              t = reader.read
+              buffer.write(t)
+              bytes -= t.size
             end
-          rescue => e
-            # remove object if error occurred
-            @o.delete
-            raise e
           end
+        rescue => e
+          # remove object if error occurred
+          @o.delete
+          raise e
         end
       end
     end

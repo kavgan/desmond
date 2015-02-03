@@ -16,14 +16,14 @@ module Desmond
         #
         def initialize(name, query, options={})
           super()
-          raise 'No name parameter' if name.nil?
-          raise 'No query parameter' if query.nil?
+          fail 'No name parameter' if name.nil?
+          fail 'No query parameter' if query.nil?
           @name = name
           @query = query
           @options = {
-            fetch_size: 1000,
+            fetch_size: 1000
           }.merge((options || {}).symbolize_keys)
-          raise '"fetch_size" needs to be greater than 0' if @options[:fetch_size] <= 0
+          fail '"fetch_size" needs to be greater than 0' if @options[:fetch_size] <= 0
           # prepare queries
           @initq = "BEGIN; DECLARE #{@name} CURSOR FOR #{@query};"
           @fetchq = "FETCH FORWARD #{@options[:fetch_size].to_i} FROM #{@name};"
@@ -46,17 +46,20 @@ module Desmond
         # [ [value1, value2], ... ]
         #
         def read
-          self.init_cursor if not(@init_cursor)
+          self.init_cursor unless @init_cursor
 
-          if not(@buff.nil?)
+          unless @buff.nil?
             tmp = @buff
             @buff = nil
             return tmp
           end
-          tmp = self.execute(@fetchq).map { |h| @keys = h.keys; h.values }.to_a
+          tmp = self.execute(@fetchq).map do |h|
+            @keys = h.keys
+            h.values
+          end.to_a
           @eof = true if tmp.empty?
           yield(tmp) if block_given?
-          return tmp
+          tmp
         end
 
         def close
@@ -80,14 +83,15 @@ module Desmond
         end
 
         protected
-          def init_cursor
-            @init_cursor = true
-            self.execute(@initq)
-          end
 
-          def execute(sql)
-            raise NotImplementedError
-          end
+        def init_cursor
+          @init_cursor = true
+          self.execute(@initq)
+        end
+
+        def execute(_sql)
+          fail NotImplementedError
+        end
       end
 
       ##
@@ -113,15 +117,15 @@ module Desmond
         end
 
         protected
-          def execute(sql)
-            Que.log level: :debug, sql: sql
-            @conn.exec(sql)
-          end
 
-        private
-          def self.dedicated_connection(options)
-            PGUtil.dedicated_connection(options)
-          end
+        def execute(sql)
+          Que.log level: :debug, sql: sql
+          @conn.exec(sql)
+        end
+
+        def self.dedicated_connection(options)
+          PGUtil.dedicated_connection(options)
+        end
       end
     end
   end

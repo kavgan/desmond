@@ -8,7 +8,7 @@
 def censor_hash_keys(h, keys=[], censorvalue='***censored***')
   keys ||= []
   nh = {}
-  h.each do |key, value|
+  h.each do |key, _|
     if h[key].is_a?(Hash)
       nh[key] = censor_hash_keys(h[key], keys, censorvalue)
     elsif keys.include?(key)

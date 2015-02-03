@@ -10,6 +10,9 @@ gem 'erubis' # mail templates
 
 group :development, :test do
   gem 'rspec'
-  gem 'simplecov', :require => false
-  gem 'sinatra-activerecord' # ActiveRecord initialization and automatic rake tasks
+  gem 'simplecov', require: false # code coverage
+  gem 'sinatra-activerecord' # ActiveRecord rake tasks
+
+  # code style stuff
+  gem 'rubocop', require: false
 end

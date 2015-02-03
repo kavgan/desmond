@@ -4,29 +4,27 @@ module Desmond
     # abstract base reader class
     #
     class Reader
+      attr_reader :options
+
       def initialize
         @eof = false
         @options = {}
       end
 
       def read
-        raise NotImplementedError
+        fail NotImplementedError
       end
 
       def close
-        raise NotImplementedError
+        fail NotImplementedError
       end
 
       def rewind
-        raise NotImplementedError
+        fail NotImplementedError
       end
 
       def eof?
         @eof
-      end
-
-      def options
-        @options
       end
     end
     ##
@@ -38,18 +36,16 @@ module Desmond
       def initialize(reader, options={})
         @options = {
           newline: "\n"
-        }.merge(options.delete_if { |k, v| v.nil? })
+        }.merge(options.delete_if { |_, v| v.nil? })
         @reader_obj = reader
         @reader = reader.each_line(@options[:newline])
       end
 
       def read
-        begin
-          return @reader.next
-        rescue StopIteration
-          @eof = true
-          return nil
-        end
+        return @reader.next
+      rescue StopIteration
+        @eof = true
+        return nil
       end
 
       def close
@@ -65,11 +61,11 @@ module Desmond
       end
 
       def write
-        raise NotImplementedError
+        fail NotImplementedError
       end
 
       def close
-        raise NotImplementedError
+        fail NotImplementedError
       end
 
       def options

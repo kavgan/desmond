@@ -20,7 +20,7 @@ module Desmond
       # parsing arrays out of an io object reading a csv.
       #
       class CSVArrayReader < CSVStream
-        COL_SEPS = [",", "|", "\t", ";"]
+        COL_SEPS = [',', '|', "\t", ';']
 
         ##
         # valid +options+ are (see ruby's CSV class):
@@ -46,9 +46,7 @@ module Desmond
         # returns the column headers
         #
         def headers
-          if @first_row_headers && @options[:headers].nil?
-            @buff = self.read
-          end
+          @buff = self.read if @first_row_headers && @options[:headers].nil?
           super()
         end
 
@@ -58,21 +56,21 @@ module Desmond
         #
         def read
           # if something was buffered, return it now
-          if not(@buff.nil?)
+          unless @buff.nil?
             tmp, @buff = @buff, nil
             return tmp
           end
           # read further
           tmp = @reader.read
           return nil if tmp.nil?
-          tmp = ::CSV::parse_line(tmp, @options)
+          tmp = ::CSV.parse_line(tmp, @options)
           # if the first row contains headers parse them
           if @first_row_headers && @options[:headers].nil?
             @options[:headers] = tmp
             return self.read
           end
           # always return an array of columns
-          tmp = tmp.to_hash.values if tmp.kind_of?(::CSV::Row)
+          tmp = tmp.to_hash.values if tmp.is_a?(::CSV::Row)
           tmp
         end
 
@@ -146,8 +144,8 @@ module Desmond
             row_sep: "\n",
             headers: columns,
             return_headers: false
-          }.merge((options || {}).symbolize_keys.select do |key, value|
-            key == :col_sep || key == :row_sep || key == :headers || key == :return_headers || key == :quote_char 
+          }.merge((options || {}).symbolize_keys.select do |key, _|
+            key == :col_sep || key == :row_sep || key == :headers || key == :return_headers || key == :quote_char
           end)
           @read_headers = false
         end
@@ -160,7 +158,7 @@ module Desmond
         def read
           tmp = nil
           # check if we need to read a header line
-          if @options[:return_headers] && not(@read_headers)
+          if @options[:return_headers] && !@read_headers
             @read_headers = true
             tmp = ::CSV.generate_line(@options[:headers], @options)
           end
@@ -176,7 +174,7 @@ module Desmond
 
           # return to caller
           yield(tmp) if block_given?
-          return tmp
+          tmp
         end
 
         ##

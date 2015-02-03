@@ -6,7 +6,7 @@ require 'fileutils'
 #
 def migrations(dirname)
   Dir.foreach(dirname).select do |entry|
-    not(entry.start_with?('.'))
+    !entry.start_with?('.')
   end
 end
 
@@ -22,7 +22,7 @@ def next_migration_number(dirname)
   num_digits = current_migration_number_str.size
   if num_digits > 5
     # timestamp format
-    [Time.now.utc.strftime("%Y%m%d%H%M%S"), format("%.14d", current_migration_number + 1)].max
+    [Time.now.utc.strftime('%Y%m%d%H%M%S'), format('%.14d', current_migration_number + 1)].max
   else
     # counter format
     format("%.#{num_digits}d", current_migration_number + 1)
@@ -51,7 +51,7 @@ end
 namespace :desmond do
   desc 'Setup database for desmond'
   task :migrate do
-    Que.migrate! :version => 3
+    Que.migrate! version: 3
 
     migration = File.join File.dirname(__FILE__), 'migrations', 'add_desmond_job_runs.rb'
     copy_migration(migration, 'db/migrate')
@@ -67,6 +67,6 @@ namespace :desmond do
   task :clear do
     require 'que/rake_tasks' # so that que's tasks don't get directly included in using apps
     Rake::Task['que:clear'].invoke
-    ActiveRecord::Base.connection.execute("TRUNCATE desmond_job_runs")
+    ActiveRecord::Base.connection.execute('TRUNCATE desmond_job_runs')
   end
 end

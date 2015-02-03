@@ -32,26 +32,30 @@ Capistrano::Configuration.instance.load do
     end
 
     def que_command
-      fetch(:que_command, "bundle exec desmond")
+      fetch(:que_command, 'bundle exec desmond')
     end
 
     def pid_dir
       fetch(:pid_dir, "#{fetch(:current_path)}/tmp/pids")
     end
 
+    def cmd(cmd)
+      "cd #{current_path};#{env} #{workers} #{que_command} #{cmd} #{pid_dir}"
+    end
+
     desc 'Stop the que process'
-    task :stop, :roles => lambda { roles } do
-      run "cd #{current_path};#{env} #{workers} #{que_command} stop #{pid_dir}"
+    task :stop, roles: -> { roles } do
+      run cmd('stop')
     end
 
     desc 'Start the que process'
-    task :start, :roles => lambda { roles } do
-      run "cd #{current_path};#{env} #{workers} #{que_command} start #{pid_dir}"
+    task :start, roles: -> { roles } do
+      run cmd('start')
     end
 
     desc 'Restart the que process'
-    task :restart, :roles => lambda { roles } do
-      run "cd #{current_path};#{env} #{workers} #{que_command} restart #{pid_dir}"
+    task :restart, roles: -> { roles } do
+      run cmd('restart')
     end
   end
 end
