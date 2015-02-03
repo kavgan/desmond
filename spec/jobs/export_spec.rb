@@ -5,7 +5,7 @@ describe Desmond::ExportJob do
   #
   # run an export test
   #
-  def run_test(options={})
+  def run_export_test(options={})
     Desmond::ExportJob.test('UserId', {
         connection_id: 'test',
         query: "SELECT * FROM exportdata;"
@@ -17,7 +17,7 @@ describe Desmond::ExportJob do
   # runs an export and returns the job run
   #
   def run_export(options={})
-    Desmond::ExportJob.enqueue('JobId', 'UserId', {
+    run = Desmond::ExportJob.enqueue('JobId', 'UserId', {
         db: {
           connection_id: 'test',
           query: "SELECT * FROM exportdata;"
@@ -27,13 +27,15 @@ describe Desmond::ExportJob do
         }
       }.deep_merge(options)
     )
+    AWS::S3.new.buckets[@config[:export_bucket]].objects[run.filename].delete unless options[:donotdelete]
+    run
   end
 
   #
   # runs an export and returns the csv string from S3
   #
   def run_export_and_return_string(options={})
-    run = run_export(options)
+    run = run_export(options.merge(donotdelete: true))
     return nil if run.failed?
     s3_obj = nil
     csv = nil
@@ -95,13 +97,13 @@ describe Desmond::ExportJob do
     run = run_export(db: {
       fetch_size: 0
     })
-    expect(run.failed?).to be true
+    expect(run.failed?).to eq(true)
     expect(run.error).to eq('"fetch_size" needs to be greater than 0')
   end
 
   it 'should complain about invalid database configuration' do
     r = run_export(db: { connection_id: nil })
-    expect(r.failed?).to be true
+    expect(r.failed?).to eq(true)
     expect(r.error).to eq('No connection id!')
   end
 
@@ -110,10 +112,10 @@ describe Desmond::ExportJob do
     begin
       DesmondConfig.system_connection_allowed = false
       r = run_export(db: { username: nil })
-      expect(r.failed?).to be true
+      expect(r.failed?).to eq(true)
       expect(r.error).to eq('No db connection username!')
       r = run_export(db: { username: 'test', password: nil })
-      expect(r.failed?).to be true
+      expect(r.failed?).to eq(true)
       expect(r.error).to eq('No db connection password!')
     ensure
       DesmondConfig.system_connection_allowed = prev_value
@@ -121,23 +123,23 @@ describe Desmond::ExportJob do
   end
 
   it 'should be able to return test data' do
-    expect(run_test).to eq({columns: ['id', 'txt'], rows: [['0', 'null'], ['1', 'eins']]})
+    expect(run_export_test).to eq({columns: ['id', 'txt'], rows: [['0', 'null'], ['1', 'eins']]})
   end
 
   it 'should complain if query is missing' do
-    expect(run_test({ query: nil })).to eq({error: 'Arguments cannot be nil'})
+    expect(run_export_test({ query: nil })).to eq({error: 'Arguments cannot be nil'})
   end
 
   it 'should complain about invalid test database configuration' do
-    expect(run_test({ connection_id: nil })).to eq({error: 'No connection id!'})
+    expect(run_export_test({ connection_id: nil })).to eq({error: 'No connection id!'})
   end
 
   it 'should complain about invalid test database credentials' do
     prev_value = DesmondConfig.system_connection_allowed?
     begin
       DesmondConfig.system_connection_allowed = false
-      expect(run_test({ username: nil })).to eq({error: 'No db connection username!'})
-      expect(run_test({ username: 'test', password: nil })).to eq({error: 'No db connection password!'})
+      expect(run_export_test({ username: nil })).to eq({error: 'No db connection username!'})
+      expect(run_export_test({ username: 'test', password: nil })).to eq({error: 'No db connection password!'})
     ensure
       DesmondConfig.system_connection_allowed = prev_value
     end

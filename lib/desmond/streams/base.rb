@@ -48,6 +48,10 @@ module Desmond
         return nil
       end
 
+      def eof?
+        @reader_obj.eof?
+      end
+
       def close
         @reader_obj.close
       end

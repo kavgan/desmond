@@ -22,7 +22,9 @@ module Desmond
         end
 
         def read
-          @reader.read
+          r = @reader.read
+          return nil if r.empty?
+          r
         end
 
         def each_line(*args)
@@ -39,6 +41,10 @@ module Desmond
 
         def close
           @reader.close
+        end
+
+        def closed?
+          @reader.closed?
         end
 
         private

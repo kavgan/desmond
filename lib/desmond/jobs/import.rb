@@ -1,6 +1,6 @@
 module Desmond
   ##
-  # job importing data into PostgreSQL compatible databases (e.g. AWS RedShift) from S3
+  # job importing data into AWS RedShift from S3
   #
   class ImportJob < BaseJob
     ##
@@ -44,9 +44,11 @@ module Desmond
       fail 'No s3 options!' if options[:s3].nil?
       bucket = options[:s3][:bucket]
       s3_key = options[:s3][:key]
-      schema_name = options[:db][:schema]
+      schema_name = options[:db][:schema] || ''
       table_name = options[:db][:table]
-      full_table_name = "\"#{schema_name}\".\"#{table_name}\""
+      fail 'Empty table name!' if table_name.nil? || table_name.empty?
+      full_table_name = "\"#{schema_name}\".\"#{table_name}\"" unless schema_name.empty?
+      full_table_name = "\"#{table_name}\"" if schema_name.empty?
 
       # open S3 CSV file
       s = Desmond::Streams::S3::S3Reader.new(
@@ -63,12 +65,12 @@ module Desmond
       create_table_sql += ');'
 
       # create table in database
-      conn = self.class.dedicated_connection(options[:db])
+      conn = PGUtil.dedicated_connection(options[:db])
       if options[:db][:dropifexists]
         conn.exec("DROP TABLE IF EXISTS #{full_table_name};")
       end
       conn.exec(create_table_sql)
-      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
+      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}' DELIMITER '#{r.options[:col_sep]}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
       conn.exec(copy_sql)
 
       self.done
@@ -81,10 +83,5 @@ module Desmond
     ensure
       Que.log level: :info, msg: "Done executing import job #{job_id} for user #{user_id}"
     end
-
-    def self.dedicated_connection(options)
-      PGUtil.dedicated_connection(options)
-    end
-    private_class_method :dedicated_connection
   end
 end

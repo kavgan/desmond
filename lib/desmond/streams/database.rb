@@ -108,7 +108,7 @@ module Desmond
       class PGCursorReader < DatabaseCursorReader
         def initialize(name, query, options={})
           super(name, query, options)
-          @conn = self.class.dedicated_connection(self.options)
+          @conn = PGUtil.dedicated_connection(self.options)
         end
 
         def close
@@ -121,10 +121,6 @@ module Desmond
         def execute(sql)
           Que.log level: :debug, sql: sql
           @conn.exec(sql)
-        end
-
-        def self.dedicated_connection(options)
-          PGUtil.dedicated_connection(options)
         end
       end
     end

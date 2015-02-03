@@ -6,8 +6,8 @@ Que.logger = Logger.new STDOUT
 
 if __FILE__ == $PROGRAM_NAME
   Desmond::ImportJob.enqueue(
-    1,
-    1,
+    'JobId',
+    'UserId',
     db: {
       connection_id: ARGV[0],
       username: ARGV[1],
