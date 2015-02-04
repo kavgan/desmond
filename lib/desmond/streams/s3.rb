@@ -8,10 +8,12 @@ module Desmond
       # All +options+ valid for AWS::S3.new are supported.
       #
       class S3Reader < Streams::Reader
+        DEFAULT_READ_SIZE = 4096
+
         def initialize(bucket, key, options={})
           @bucket = bucket
           @key = key
-          @options = options
+          @options = { read_size: DEFAULT_READ_SIZE }.merge(options)
           @aws = AWS::S3.new(@options)
           @reader = recreate
         end
@@ -21,9 +23,9 @@ module Desmond
           "aws_access_key_id=#{c.access_key_id};aws_secret_access_key=#{c.secret_access_key}"
         end
 
-        def read
-          r = @reader.read
-          return nil if r.empty?
+        def read(*args) # ignoring any argument for now
+          r = @reader.read(@options[:read_size])
+          return nil if r.nil? || r.empty?
           r
         end
 

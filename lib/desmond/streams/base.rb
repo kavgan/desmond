@@ -1,3 +1,6 @@
+# TODO make read functions IO.read compatible
+# TODO IO.read reads until EOF with no argument, make sure we don't that anymore
+
 module Desmond
   module Streams
     ##
@@ -54,6 +57,24 @@ module Desmond
 
       def close
         @reader_obj.close
+      end
+    end
+    class GzipReader < Reader
+      def initialize(reader, options={})
+        @reader_obj = reader
+        @reader = Zlib::GzipReader.new(@reader_obj)
+      end
+      def read
+        t = @reader.read
+        return nil if t.nil? || t.empty?
+        t
+      end
+      def eof?
+        @reader.eof?
+      end
+
+      def close
+        @reader.close
       end
     end
     ##
