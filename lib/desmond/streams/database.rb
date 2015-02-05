@@ -18,15 +18,18 @@ module Desmond
           super()
           fail 'No name parameter' if name.nil?
           fail 'No query parameter' if query.nil?
-          @name = name
+          @name = PGUtil.escape_identifier(name)
           @query = query
+          # only one query is allowed, mitigating sql injection
+          fail 'Query separator detected' unless query.index(';').nil? || query.index(';') == query.size - 1
           @options = {
             fetch_size: 1000
           }.merge((options || {}).symbolize_keys)
+          @options[:fetch_size] = @options[:fetch_size].to_i
           fail '"fetch_size" needs to be greater than 0' if @options[:fetch_size] <= 0
           # prepare queries
           @initq = "BEGIN; DECLARE #{@name} CURSOR FOR #{@query};"
-          @fetchq = "FETCH FORWARD #{@options[:fetch_size].to_i} FROM #{@name};"
+          @fetchq = "FETCH FORWARD #{@options[:fetch_size]} FROM #{@name};"
           @closeq = "CLOSE #{@name}; END;"
           @init_cursor = false
           @buff = nil

@@ -93,7 +93,7 @@ describe Desmond::ExportJob do
     expect(export_small_fs).to eq(export_big_fs)
   end
 
-  it 'should complain about invlaid fetch_size\'s' do
+  it 'should complain about invalid fetch_size\'s' do
     run = run_export(db: {
       fetch_size: 0
     })
@@ -120,6 +120,10 @@ describe Desmond::ExportJob do
     ensure
       DesmondConfig.system_connection_allowed = prev_value
     end
+  end
+
+  it 'should complain about multiple queries/injection' do
+    expect(run_export_test({ query: "SELECT 1 AS one; INSERT INTO" })).to eq({error: 'Query separator detected'})
   end
 
   it 'should be able to return test data' do

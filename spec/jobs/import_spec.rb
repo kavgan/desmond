@@ -39,20 +39,24 @@ describe Desmond::ImportJob do
   end
 
   def run_import(file, options={})
-    run, _ = __run_import(file, options)
+    run, table = __run_import(file, options)
     run
+  ensure
+    begin
+      conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}")
+    rescue => e
+      # ignore failed query, tested invalid credentials
+    end
   end
 
   #
   # runs an import and returns the database rows
   #
   def run_import_and_return_rows(file, options={})
-    begin
-      run, table = __run_import(file, options)
-      conn.exec("SELECT * FROM #{@config[:import_schema]}.#{table}").to_a
-    ensure
-      conn.exec("DROP TABLE #{@config[:import_schema]}.#{table}") unless options[:donotdeletetable]
-    end
+    run, table = __run_import(file, options)
+    conn.exec("SELECT * FROM #{@config[:import_schema]}.#{table}").to_a
+  ensure
+    conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless options[:donotdeletetable]
   end
 
   it 'should import a pipe-delimited csv' do

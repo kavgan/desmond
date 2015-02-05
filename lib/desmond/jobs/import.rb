@@ -42,13 +42,15 @@ module Desmond
 
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?
-      bucket = options[:s3][:bucket]
-      s3_key = options[:s3][:key]
+      bucket = PGUtil.escape_string(options[:s3][:bucket])
+      s3_key = PGUtil.escape_string(options[:s3][:key])
       schema_name = options[:db][:schema] || ''
       table_name = options[:db][:table]
       fail 'Empty table name!' if table_name.nil? || table_name.empty?
-      full_table_name = "\"#{schema_name}\".\"#{table_name}\"" unless schema_name.empty?
-      full_table_name = "\"#{table_name}\"" if schema_name.empty?
+      schema_name = PGUtil.escape_identifier(schema_name) unless schema_name.empty?
+      table_name = PGUtil.escape_identifier(table_name)
+      full_table_name = "#{schema_name}.#{table_name}" unless schema_name.empty?
+      full_table_name = table_name if schema_name.empty?
 
       # open S3 CSV file
       s = Desmond::Streams::S3::S3Reader.new(
@@ -61,7 +63,7 @@ module Desmond
 
       # construct create table query out of CSV headers
       create_table_sql  = "CREATE TABLE #{full_table_name} ("
-      create_table_sql += headers.map { |header| "\"#{header}\" VARCHAR" }.join(',')
+      create_table_sql += headers.map { |header| "#{PGUtil.escape_identifier(header)} VARCHAR" }.join(',')
       create_table_sql += ');'
 
       # create table in database
@@ -70,7 +72,9 @@ module Desmond
         conn.exec("DROP TABLE IF EXISTS #{full_table_name};")
       end
       conn.exec(create_table_sql)
-      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s.credentials}' DELIMITER '#{r.options[:col_sep]}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
+      s3_credentials = PGUtil.escape_string(s.credentials)
+      csv_col_sep = PGUtil.escape_string(r.options[:col_sep])
+      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
       conn.exec(copy_sql)
 
       self.done

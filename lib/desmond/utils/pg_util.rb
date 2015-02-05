@@ -39,5 +39,13 @@ module Desmond
         connect_timeout: options['timeout']
       )
     end
+
+    def self.escape_string(str)
+      PG::Connection.escape_string(str)
+    end
+
+    def self.escape_identifier(str)
+      PG::Connection.quote_ident(str)
+    end
   end
 end
