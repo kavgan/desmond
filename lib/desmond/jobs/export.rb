@@ -13,7 +13,7 @@ module Desmond
     #
     # the following +options+ are required:
     # - connection_id: ActiveRecord connection id to be used
-    # - query: query to be exported
+    # - query: query to be exported (only SELECT or VALUES queries, supported)
     #
     # the following options are required when `DesmondConfig.system_connection_allowed?` is false:
     # - username: database username

@@ -21,6 +21,7 @@ module Desmond
       #
       class CSVArrayReader < CSVStream
         COL_SEPS = [',', '|', "\t", ';']
+        QUOTE_CHARS = ['\'', '"']
 
         ##
         # valid +options+ are (see ruby's CSV class):
@@ -89,14 +90,15 @@ module Desmond
         end
 
         ##
-        # guesses row_sep and col_sep.
+        # guesses row_sep, col_sep and quote_char.
         # returns hash
         #
         def self.guess_separators(reader)
           # read 100 lines for guessing
           content = (0..100).map { reader.read }.join('')
-          max_count = 0
           row_sep = "\n" # safe bet for now :)
+          # guess col_sep
+          max_count = 0
           col_sep = nil
           COL_SEPS.each do |cs|
             count = content.count cs
@@ -105,7 +107,17 @@ module Desmond
               col_sep = cs
             end
           end
-          { row_sep: row_sep, col_sep: col_sep }
+          # guess quote_char
+          max_count = 0
+          quote_char = '"'
+          QUOTE_CHARS.each do |qs|
+            count = content.scan("#{col_sep}#{qs}").count + content.scan("#{qs}#{col_sep}").count
+            if count > max_count
+              max_count = count
+              quote_char = qs
+            end
+          end
+          { row_sep: row_sep, col_sep: col_sep, quote_char: quote_char }
         end
 
         ##

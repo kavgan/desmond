@@ -74,7 +74,8 @@ module Desmond
       conn.exec(create_table_sql)
       s3_credentials = PGUtil.escape_string(s.credentials)
       csv_col_sep = PGUtil.escape_string(r.options[:col_sep])
-      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
+      csv_quote_char = PGUtil.escape_string(r.options[:quote_char])
+      copy_sql = "COPY #{full_table_name} FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' CSV QUOTE '#{csv_quote_char}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
       conn.exec(copy_sql)
 
       self.done

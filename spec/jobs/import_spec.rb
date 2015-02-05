@@ -43,7 +43,7 @@ describe Desmond::ImportJob do
     run
   ensure
     begin
-      conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}")
+      conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless table.nil?
     rescue => e
       # ignore failed query, tested invalid credentials
     end
@@ -56,7 +56,7 @@ describe Desmond::ImportJob do
     run, table = __run_import(file, options)
     conn.exec("SELECT * FROM #{@config[:import_schema]}.#{table}").to_a
   ensure
-    conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless options[:donotdeletetable]
+    conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless table.nil? || options[:donotdeletetable]
   end
 
   it 'should import a pipe-delimited csv' do
@@ -68,6 +68,13 @@ describe Desmond::ImportJob do
 
   it 'should import a comma-delimited csv' do
     expect(run_import_and_return_rows('spec/import_comma.csv')).to match_array([
+          { "id" => "0", "txt" => "null" },
+          { "id" => "1", "txt" => "eins" }
+        ])
+  end
+
+  it 'should import a quoted csv' do
+    expect(run_import_and_return_rows('spec/import_quoted.csv')).to match_array([
           { "id" => "0", "txt" => "null" },
           { "id" => "1", "txt" => "eins" }
         ])
