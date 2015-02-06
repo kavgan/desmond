@@ -2,7 +2,7 @@
 CENSORED_KEYS = %w(password secret_access_key)
 Que.log_formatter = proc do |data|
   tmp = ActiveSupport::HashWithIndifferentAccess.new(data)
-  if tmp.include?(:job)
+  if tmp.include?(:job) && !tmp[:job].nil?
     tmp[:job][:args] = tmp[:job][:args].map do |arg|
       censor_hash_keys(arg, CENSORED_KEYS) if arg.is_a?(Hash)
     end
@@ -57,7 +57,9 @@ module Desmond
     #
     def run(_job_id, _user_id, options={})
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
-      Desmond::JobRun.find(self.run_id).update(status: 'running', executed_at: Time.now)
+      job_run.update(status: 'running', executed_at: Time.now)
+      # we are not going to let exceptions from a hook ruin this => resuce nil
+      self.send :before, job_run, *self.attrs[:args] if self.respond_to?(:before) rescue nil
     end
 
     ##
@@ -94,7 +96,9 @@ module Desmond
       status = 'done'
       status = 'failed' unless success
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
-      Desmond::JobRun.find(self.run_id).update(status: status, details: details, completed_at: Time.now)
+      job_run.update(status: status, details: details, completed_at: Time.now)
+      # we are not going to let exceptions from a hook ruin this => resuce nil
+      self.send :after, job_run, *self.attrs[:args] if self.respond_to?(:after) rescue nil
     end
 
     def mail_success(options={})
