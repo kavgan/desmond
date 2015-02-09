@@ -1,14 +1,4 @@
-# configure log censoring, so that password and AWS secret keys don't end up in the logs
-CENSORED_KEYS = %w(password secret_access_key)
-Que.log_formatter = proc do |data|
-  tmp = ActiveSupport::HashWithIndifferentAccess.new(data)
-  if tmp.include?(:job) && !tmp[:job].nil?
-    tmp[:job][:args] = tmp[:job][:args].map do |arg|
-      censor_hash_keys(arg, CENSORED_KEYS) if arg.is_a?(Hash)
-    end
-  end
-  tmp.to_json
-end
+# TODO leave mail stuff to using libraries like Polizei with hooks, don't do it ourselves
 
 module Desmond
   ##
@@ -19,16 +9,6 @@ module Desmond
   class BaseJob < ::Que::Job
     include JobRunFinders
     attr_accessor :run_id
-
-    ##
-    # test the job
-    #
-    # +user_id+: unique identifier of the application's user running this test
-    # +options+: depends on the implementation of the job
-    #
-    def self.test(_user_id, _options={})
-      fail NotImplementedError
-    end
 
     ##
     # queue this job for execution
@@ -55,11 +35,19 @@ module Desmond
     # +user_id+: unique identifier of the application's user running this export for later identification
     # +options+: depends on the implementation of the job
     #
-    def run(_job_id, _user_id, options={})
+    def run(job_id, user_id, options={})
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
       job_run.update(status: 'running', executed_at: Time.now)
-      # we are not going to let exceptions from a hook ruin this => resuce nil
-      self.send :before, job_run, *self.attrs[:args] if self.respond_to?(:before) rescue nil
+      run_hook(:before)
+
+      self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
+      self.done if job_run.running?
+      run_hook(:after)
+    rescue => e
+      Que.log level: :error, message: "Error executing job #{self.name}:"
+      Que.log level: :error, exception: e.message
+      Que.log level: :error, backtrace: e.backtrace.join("\n ")
+      self.failed({}, error: e.message)
     end
 
     ##
@@ -88,6 +76,14 @@ module Desmond
 
     private
 
+    def run_hook(name)
+      self.send name.to_sym, job_run, *self.attrs[:args] if self.respond_to?(name.to_sym)
+    rescue Exception => e
+      Que.log level: :error, message: 'Error executing hook:'
+      Que.log level: :error, exception: e.message
+      Que.log level: :error, backtrace: e.backtrace.join("\n ")
+    end
+
     def job_run
       Desmond::JobRun.find(self.run_id)
     end
@@ -97,8 +93,6 @@ module Desmond
       status = 'failed' unless success
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
       job_run.update(status: status, details: details, completed_at: Time.now)
-      # we are not going to let exceptions from a hook ruin this => resuce nil
-      self.send :after, job_run, *self.attrs[:args] if self.respond_to?(:after) rescue nil
     end
 
     def mail_success(options={})

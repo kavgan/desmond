@@ -21,3 +21,8 @@ You can also define custom Jobs and piggy-back on Desmond's job system by inheri
 Development
 ---------------------
 For development on Desmond make sure you run `rake desmond:migrate` to create Que's job table and `rake db:migrate` to run Desmond's migrations.
+
+
+Running tests
+---------------------
+Modify 'config/tests.yml' for your environment, then run `rspec`

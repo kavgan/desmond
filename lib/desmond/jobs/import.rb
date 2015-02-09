@@ -36,9 +36,8 @@ module Desmond
     #   - return_headers
     #   - quote_char
     #
-    def run(job_id, user_id, options={})
+    def execute(job_id, user_id, options={})
       Que.log level: :info, msg: "Starting to execute import job #{job_id} for user #{user_id}"
-      super(job_id, user_id, options)
 
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?

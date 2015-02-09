@@ -83,10 +83,9 @@ module Desmond
     #   - return_headers
     #   - quote_char
     #
-    def run(job_id, user_id, options={})
+    def execute(job_id, user_id, options={})
       Que.log level: :info, msg: "Starting to execute export job #{job_id} for user #{user_id}"
       options = options.deep_symbolize_keys
-      super(job_id, user_id, options)
       job_run_filename = job_run.filename
       export_id = File.basename(job_run_filename, '.*')
       # check options

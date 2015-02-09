@@ -144,3 +144,15 @@ DesmondConfig.mail
 Que.connection = ActiveRecord
 Que.mode = :sync if DesmondConfig.environment == :test
 Que.mode = :off if DesmondConfig.environment != :test
+
+# configure log censoring, so that password and AWS secret keys don't end up in the logs
+CENSORED_KEYS = %w(password secret_access_key)
+Que.log_formatter = proc do |data|
+  tmp = ActiveSupport::HashWithIndifferentAccess.new(data)
+  if tmp.include?(:job) && !tmp[:job].nil?
+    tmp[:job][:args] = tmp[:job][:args].map do |arg|
+      censor_hash_keys(arg, CENSORED_KEYS) if arg.is_a?(Hash)
+    end
+  end
+  tmp.to_json
+end
