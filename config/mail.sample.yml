@@ -1,8 +1,0 @@
-address: smtp.gmail.com # smtp server host
-port: 587 # smtp server port
-authentication: plain # smtp server authentication method
-user_name: username@example.com #smtp server username
-password: password # smtp server password
-enable_starttls_auto: true # enable startssl
-job_failure_cc: admin@example.com # when a job fails, the failure email will have this cc recipient
-job_failure_bcc: admin@example.com # when a job fails, the failure email will have this bcc recipient

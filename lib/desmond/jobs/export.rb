@@ -72,10 +72,6 @@ module Desmond
     #   - timeout: connection timeout to database
     # - s3
     #   - everything supported by AWS::S3.new
-    # - job
-    #   - mail_success: comma-separated emails to notify on success
-    #   - mail_failure: comma-separated emails to notify on failure
-    #   - everything else is passed to the email template as variables
     # - csv (see ruby's CSV documentation)
     #   - col_sep
     #   - row_sep
@@ -116,15 +112,9 @@ module Desmond
         csv_reader.close unless csv_reader.nil?
       end
 
-      # everything is done, send emails and remove the job
-      details = { bucket: s3_bucket, key: s3_key, aceess_key: options[:s3][:access_key_id] }
-      self.done(DesmondConfig.mail_export_success(options.fetch(:job, {}).merge(url: s3writer.public_url)), details)
-    rescue => e
-      # error occurred
-      details = { error: e.message }
-      Que.log level: :error, exception: details[:error]
-      Que.log level: :error, backtrace: e.backtrace.join("\n ")
-      self.failed(DesmondConfig.mail_export_failure(options.fetch(:job, {})).merge(details), details)
+      # everything is done
+      details = { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
+      self.done(details)
     ensure
       Que.log level: :info, msg: "Done executing export job #{job_id} for user #{user_id}"
     end

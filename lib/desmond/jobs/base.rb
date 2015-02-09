@@ -1,5 +1,3 @@
-# TODO leave mail stuff to using libraries like Polizei with hooks, don't do it ourselves
-
 module Desmond
   ##
   # base class for queueable jobs.
@@ -39,39 +37,32 @@ module Desmond
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
       job_run.update(status: 'running', executed_at: Time.now)
       run_hook(:before)
-
       self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
       self.done if job_run.running?
       run_hook(:after)
     rescue => e
-      Que.log level: :error, message: "Error executing job #{self.name}:"
+      Que.log level: :error, message: "Error executing job #{self.class.name}(#{job_id}, #{user_id}, #{options}):"
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
-      self.failed({}, error: e.message)
+      self.failed(error: e.message)
     end
 
     ##
     # job is completed, but failed.
-    # +mail+ will be passed to Pony.mail.
     # +details+ will be saved for this run in the database.
     #
-    def failed(mail={}, details={})
-      mail ||= {}
+    def failed(details={})
       details ||= {}
       delete_job(false, details)
-      mail_failure(mail)
     end
 
     ##
     # job is completed and succeeded.
-    # +mail+ will be passed to Pony.mail.
     # +details+ will be saved for this run in the database.
     #
-    def done(mail={}, details={})
-      mail ||= {}
+    def done(details={})
       details ||= {}
       delete_job(true, details)
-      mail_success(mail)
     end
 
     private
@@ -93,25 +84,6 @@ module Desmond
       status = 'failed' unless success
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
       job_run.update(status: status, details: details, completed_at: Time.now)
-    end
-
-    def mail_success(options={})
-      options['to'] = options['mail_success']
-      mail(options)
-    end
-
-    def mail_failure(options={})
-      options['to'] = options['mail_failure']
-      mail(options)
-    end
-
-    def mail(options)
-      return if options['to'].nil? || options['subject'].nil? || options['body'].nil?
-      options['subject'] = Erubis::Eruby.new(options['subject']).evaluate(options)
-      options['body'] = Erubis::Eruby.new(options['body']).evaluate(options)
-      Pony.mail(options.symbolize_keys.select do |k, _|
-        k == :to || k == :from || k == :subject || k == :body
-      end)
     end
   end
 end

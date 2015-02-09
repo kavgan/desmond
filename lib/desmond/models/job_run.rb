@@ -72,6 +72,16 @@ module Desmond
       self['status'] == STATUS_SUCCESS
     end
 
+    ##
+    # detail saved by the job
+    #
+    def details
+      self['details']
+    end
+
+    ##
+    # error saved by the job
+    #
     def error
       self['details']['error']
     end

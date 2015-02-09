@@ -77,6 +77,16 @@ describe Desmond::ExportJob do
     })).to eq("id,txt\n0,null\n1,eins\n")
   end
 
+  it 'should save the s3 details of the exported file' do
+    run = run_export(csv: {
+        col_sep: '|',
+        return_headers: false
+    })
+    expect(run.details).to have_key('bucket')
+    expect(run.details).to have_key('key')
+    expect(run.details).to have_key('access_key')
+  end
+
   it 'should not matter what value fetch_size has' do
     export_small_fs = run_export_and_return_string(csv: {
         col_sep: ',',

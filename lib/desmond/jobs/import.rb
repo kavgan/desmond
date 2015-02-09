@@ -78,13 +78,7 @@ module Desmond
       copy_sql = "COPY #{full_table_name}(#{copy_columns}) FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' TRIMBLANKS CSV QUOTE '#{csv_quote_char}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
       conn.exec(copy_sql)
 
-      self.done
-    rescue => e
-      # error occurred
-      details = { error: e.message }
-      Que.log level: :error, exception: details[:error]
-      Que.log level: :error, backtrace: e.backtrace.join("\n ")
-      self.failed(nil, details)
+      self.done(table: full_table_name)
     ensure
       Que.log level: :info, msg: "Done executing import job #{job_id} for user #{user_id}"
     end

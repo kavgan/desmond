@@ -71,6 +71,15 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(2)
   end
 
+  it 'should save data into job run' do
+    clazz = new_job do
+      define_method(:execute) do |job_id, user_id, options={}|
+        done(testdata: true)
+      end
+    end
+    expect(clazz.enqueue(1, 1).details).to eq('testdata' => true)
+  end
+
   it 'should fail the job on uncaught exception' do
     clazz = new_job do
       define_method(:execute) do |job_id, user_id, options={}|

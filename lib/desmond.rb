@@ -2,8 +2,6 @@ require 'que'
 require 'active_record'
 require 'yaml'
 require 'aws-sdk-v1'
-require 'erubis'
-require 'pony'
 # not loaded automatically
 require 'active_support/hash_with_indifferent_access'
 
@@ -41,7 +39,6 @@ class DesmondConfig
   #
   def self.config_file=(file)
     @config = load_config_file(file)
-    self.mail
   end
   ##
   # retrieve the desmond configuration
@@ -92,42 +89,12 @@ class DesmondConfig
     fail 'Do not use this DesmondConfig.system_connection_allowed= outside of "test"' if self.environment != :test
     config['system_connection_allowed'] = value
   end
-  ##
-  # loads the mail configuration
-  #
-  def self.mail
-    mail_config = load_config_file(config['mail'] || 'config/mail.yml')
-    Pony.options = {
-      from: mail_config['username'],
-      via: :smtp,
-      via_options: mail_config.symbolize_keys
-    }
-  end
-  ##
-  # retrieves the mail template for successful exports
-  #
-  def self.mail_export_success(options={})
-    mail_options('mail_export_success', 'mailers/export_success.yml', options)
-  end
-  ##
-  # retrieves the mail template for failed exports
-  #
-  def self.mail_export_failure(options={})
-    mail_options('mail_export_failure', 'mailers/export_failure.yml', options)
-  end
 
   def self.load_config_file(file)
     return {} unless File.exist?(file)
     ActiveSupport::HashWithIndifferentAccess.new(YAML.load_file(file))
   end
   private_class_method :load_config_file
-
-  def self.mail_options(key, default_file, options={})
-    file = config[key] || default_file
-    @mail_export_success = load_config_file(file) if @mail_export_success.nil?
-    @mail_export_success.merge(options)
-  end
-  private_class_method :mail_options
 end
 
 # configure ActiveRecord, but the app using us should really do this,
@@ -136,9 +103,6 @@ if ActiveRecord::Base.configurations.empty?
   ActiveRecord::Base.configurations = DesmondConfig.database
   ActiveRecord::Base.establish_connection DesmondConfig.environment
 end
-
-# configure pony
-DesmondConfig.mail
 
 # configure que
 Que.connection = ActiveRecord
