@@ -39,12 +39,14 @@ module Desmond
       run_hook(:before)
       self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
       self.done if job_run.running?
-      run_hook(:after)
     rescue => e
       Que.log level: :error, message: "Error executing job #{self.class.name}(#{job_id}, #{user_id}, #{options}):"
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       self.failed(error: e.message)
+    ensure
+      # we always want to execute the after hook
+      run_hook(:after)
     end
 
     ##
@@ -54,6 +56,7 @@ module Desmond
     def failed(details={})
       details ||= {}
       delete_job(false, details)
+      run_hook(:error) # special error hook when job fails
     end
 
     ##
