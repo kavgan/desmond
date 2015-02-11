@@ -85,6 +85,13 @@ module Desmond
         end
 
         ##
+        # write the given data to the underlying S3 object
+        #
+        def write(data)
+          @o.write(data)
+        end
+
+        ##
         # uses +reader+ to write to the initialized S3 object until EOF is reached.
         # does NOT close the reader.
         # S3 object is deleted on error
