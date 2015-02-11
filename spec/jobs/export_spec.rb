@@ -82,6 +82,7 @@ describe Desmond::ExportJob do
         col_sep: '|',
         return_headers: false
     })
+    expect(run.done?).to eq(true)
     expect(run.details).to have_key('bucket')
     expect(run.details).to have_key('key')
     expect(run.details).to have_key('access_key')

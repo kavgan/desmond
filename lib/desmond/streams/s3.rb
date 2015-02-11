@@ -78,7 +78,7 @@ module Desmond
           @options = options
           @aws = AWS::S3.new(@options)
           # create empty s3 object and get writer to it
-          @o, @child_pid, @writer = recreate
+          @o, @thread, @writer = recreate
         end
 
         ##
@@ -100,7 +100,7 @@ module Desmond
         #
         def close
           @writer.close
-          Process.wait(@child_pid)
+          @thread.join
         end
 
         ##
@@ -131,9 +131,8 @@ module Desmond
           o = @aws.buckets[@bucket].objects.create(@key, '')
           # no other way to stream to S3 unfortunately ...
           reader, writer = IO.pipe
-          child_pid = fork do
+          thread = Thread.new do
             begin
-              writer.close
               o.write(estimated_content_length: AWS.config.s3_multipart_threshold + 1) do |buffer, bytes|
                 # aws doesn't seem to have a problem with getting more bytes,
                 # which makes this code simpler
@@ -147,8 +146,7 @@ module Desmond
               reader.close
             end
           end
-          reader.close
-          return o, child_pid, writer
+          return o, thread, writer
         end
       end
     end
