@@ -30,9 +30,43 @@ end
 describe Desmond::Streams::S3::S3Writer do
   it 'should delete S3 object on error' do
     unique_name = "desmond_test_#{rand(1024)}"
-    s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, '')
-    w = Desmond::Streams::S3::S3Writer.new(@config[:import_bucket], unique_name)
-    expect { w.write_from(nil) }.to raise_error
-    expect(s3_obj.exists?).to eq(false)
+    begin
+      w = Desmond::Streams::S3::S3Writer.new(@config[:import_bucket], unique_name)
+      expect { w.write_from(nil) }.to raise_error
+      s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name]
+      expect(s3_obj.exists?).to eq(false)
+    ensure
+      AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name].delete
+    end
+  end
+
+  it 'should support write from reader' do
+    unique_name = "desmond_test_#{rand(1024)}"
+    content = "a,b\n"
+    begin
+      w = Desmond::Streams::S3::S3Writer.new(@config[:import_bucket], unique_name)
+      w.write_from(StringIO.new(content))
+      content_all = AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name].read
+      expect(content_all).to eq(content)
+    ensure
+      AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name].delete
+    end
+  end
+
+  it 'should support streamed writing' do
+    unique_name = "desmond_test_#{rand(1024)}"
+    content1 = "a,b\n"
+    content2 = "c,d\n"
+    begin
+      w = Desmond::Streams::S3::S3Writer.new(@config[:import_bucket], unique_name)
+      w.write content1
+      w.write content2
+      w.close
+
+      content_all = AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name].read
+    ensure
+      AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name].delete
+    end
+    expect(content_all).to eq(content1 + content2)
   end
 end

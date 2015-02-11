@@ -1,4 +1,9 @@
 require 'simplecov'
+# we are going to fork, and don't want the subprocesses to report coverage
+pid = Process.pid
+SimpleCov.at_exit do
+  SimpleCov.result.format! if Process.pid == pid
+end
 SimpleCov.start
 require 'rspec'
 require 'rake'

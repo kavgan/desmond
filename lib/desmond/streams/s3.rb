@@ -73,8 +73,12 @@ module Desmond
       #
       class S3Writer < Streams::Writer
         def initialize(bucket, key, options={})
-          # create empty s3 object
-          @o = AWS::S3.new(options).buckets[bucket].objects.create(key, '')
+          @bucket = bucket
+          @key = key
+          @options = options
+          @aws = AWS::S3.new(@options)
+          # create empty s3 object and get writer to it
+          @o, @child_pid, @writer = recreate
         end
 
         ##
@@ -88,14 +92,15 @@ module Desmond
         # write the given data to the underlying S3 object
         #
         def write(data)
-          @o.write(data)
+          @writer.write(data)
         end
 
         ##
         # close s3 stream
         #
         def close
-          # nothing needs to done
+          @writer.close
+          Process.wait(@child_pid)
         end
 
         ##
@@ -104,19 +109,46 @@ module Desmond
         # S3 object is deleted on error
         #
         def write_from(reader)
-          # we have no idea of the file size, but we're gonna force aws to upload using multipart upload,
-          # just so the whole file won't be in memory at some point
-          @o.write(estimated_content_length: AWS.config.s3_multipart_threshold + 1) do |buffer, bytes|
-            while bytes > 0 && !reader.eof?
-              t = reader.read
-              buffer.write(t)
-              bytes -= t.size
-            end
+          exception_thrown = false
+          while !reader.eof?
+            self.write(reader.read)
           end
         rescue => e
           # remove object if error occurred
-          @o.delete
+          exception_thrown = true
           raise e
+        ensure
+          self.close
+          # this needs to be done after the child process is done,
+          # othwerwise it recreates the object
+          @o.delete if exception_thrown
+        end
+
+        private
+
+        def recreate
+          fail 'S3 object already exists' if @aws.buckets[@bucket].objects[@key].exists?
+          o = @aws.buckets[@bucket].objects.create(@key, '')
+          # no other way to stream to S3 unfortunately ...
+          reader, writer = IO.pipe
+          child_pid = fork do
+            begin
+              writer.close
+              o.write(estimated_content_length: AWS.config.s3_multipart_threshold + 1) do |buffer, bytes|
+                # aws doesn't seem to have a problem with getting more bytes,
+                # which makes this code simpler
+                while bytes > 0 && !reader.eof?
+                  t = reader.read
+                  buffer.write(t)
+                  bytes -= t.size
+                end
+              end
+            ensure
+              reader.close
+            end
+          end
+          reader.close
+          return o, child_pid, writer
         end
       end
     end
