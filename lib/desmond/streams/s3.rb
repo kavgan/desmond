@@ -92,6 +92,13 @@ module Desmond
         end
 
         ##
+        # close s3 stream
+        #
+        def close
+          # nothing needs to done
+        end
+
+        ##
         # uses +reader+ to write to the initialized S3 object until EOF is reached.
         # does NOT close the reader.
         # S3 object is deleted on error
