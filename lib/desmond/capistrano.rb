@@ -36,7 +36,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def pid_dir
-      fetch(:pid_dir, "#{fetch(:current_path)}/tmp/pids")
+      fetch(:pid_dir, "#{fetch(:shared_path)}/pids")
     end
 
     def cmd(cmd)
