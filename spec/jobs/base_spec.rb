@@ -63,6 +63,10 @@ describe Desmond::BaseJob do
         self.class.test_counter = 1 if self.class.test_counter == 0
       end
 
+      define_method(:success) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter += 1 # shouldn't be executed
+      end
+
       define_method(:after) do |job_run, job_id, user_id, options={}|
         self.class.test_counter = 2 if self.class.test_counter == 1
       end
@@ -72,6 +76,33 @@ describe Desmond::BaseJob do
       end
     end
     expect(clazz.enqueue(1, 1).failed?).to eq(true)
+    expect(clazz.test_counter).to eq(2)
+  end
+
+  it 'should success error & after hook' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:error) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter += 1 # shouldn't be executed
+      end
+
+      define_method(:success) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 1 if self.class.test_counter == 0
+      end
+
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 2 if self.class.test_counter == 1
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        done
+      end
+    end
+    expect(clazz.enqueue(1, 1).done?).to eq(true)
     expect(clazz.test_counter).to eq(2)
   end
 

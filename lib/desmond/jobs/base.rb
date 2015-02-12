@@ -66,6 +66,7 @@ module Desmond
     def done(details={})
       details ||= {}
       delete_job(true, details)
+      run_hook(:success)
     end
 
     private
