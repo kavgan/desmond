@@ -60,12 +60,14 @@ namespace :desmond do
   desc 'Start daemon for desmond'
   task :run do
     require 'que/rake_tasks' # so that que's tasks don't get directly included in using apps
+    ActiveRecord::Base.logger = DesmondConfig.logger
     Rake::Task['que:work'].invoke
   end
 
   desc 'Clear job runs and queues'
   task :clear do
     require 'que/rake_tasks' # so that que's tasks don't get directly included in using apps
+    ActiveRecord::Base.logger = DesmondConfig.logger
     Rake::Task['que:clear'].invoke
     ActiveRecord::Base.connection.execute('TRUNCATE desmond_job_runs')
   end

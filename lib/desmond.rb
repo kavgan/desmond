@@ -118,7 +118,7 @@ end
 Que.connection = ActiveRecord
 Que.mode = :sync if DesmondConfig.environment == :test
 Que.mode = :off if DesmondConfig.environment != :test
-Que.logger = Logger.new STDOUT
+Que.logger = Logger.new STDOUT if DesmondConfig.environment != :test
 
 # configure log censoring, so that password and AWS secret keys don't end up in the logs
 CENSORED_KEYS = %w(password secret_access_key)
