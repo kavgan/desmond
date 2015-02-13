@@ -25,6 +25,16 @@ require_relative 'desmond/models/job_run'
 #
 class DesmondConfig
   ##
+  # logger to use
+  #
+  def self.logger=(new_logger)
+    Que.logger = new_logger
+  end
+  def self.logger
+    Que.logger
+  end
+
+  ##
   # determins the environment we are running in:
   # - development
   # - staging
@@ -108,6 +118,7 @@ end
 Que.connection = ActiveRecord
 Que.mode = :sync if DesmondConfig.environment == :test
 Que.mode = :off if DesmondConfig.environment != :test
+Que.logger = Logger.new STDOUT
 
 # configure log censoring, so that password and AWS secret keys don't end up in the logs
 CENSORED_KEYS = %w(password secret_access_key)
