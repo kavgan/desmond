@@ -83,7 +83,8 @@ module Desmond
       Que.log level: :info, msg: "Starting to execute export job #{job_id} for user #{user_id}"
       options = options.deep_symbolize_keys
       job_run_filename = job_run.filename
-      export_id = File.basename(job_run_filename, '.*')
+      time = job_run.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
+      export_id = "#{DesmondConfig.app_id}_export_#{job_id}_#{user_id}_#{time}"
       # check options
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?

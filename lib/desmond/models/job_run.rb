@@ -34,7 +34,7 @@ module Desmond
     #
     def filename
       time = self.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-      "#{DesmondConfig.app_id}_#{self.job_class}_#{self.job_id}_#{self.user_id}_#{time}.csv"
+      "#{DesmondConfig.app_id}_#{self.job_class.sub('::', '_')}_#{self.job_id}_#{self.user_id}_#{time}.csv"
     end
 
     ##
