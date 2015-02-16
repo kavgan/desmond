@@ -21,7 +21,7 @@ module Desmond
       password = options[:password]
       conf = ActiveRecord::Base.configurations[ar_config.to_s]
       fail 'No connection id!' if ar_config.nil? || ar_config.empty?
-      if !DesmondConfig.system_connection_allowed?
+      if !DesmondConfig.system_connection_allowed? && !options[:system_connection_allowed]
         fail 'No db connection username!' if username.nil? || username.empty?
         fail 'No db connection password!' if password.nil? || password.empty?
       else
