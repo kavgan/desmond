@@ -16,12 +16,30 @@ module Desmond
     # returns a JobRun instance
     #
     def self.enqueue(job_id, user_id, options={})
-      e = Desmond::JobRun.create(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
+      job_run_id = create_job_run(job_id, user_id)
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
-      super(job_id, user_id, options.merge(_run_id: e.id))
+      super(job_id, user_id, options.merge(_run_id: job_run_id))
       # requery from database, since it was already updated in sync mode
-      Desmond::JobRun.find(e.id)
+      Desmond::JobRun.find(job_run_id)
+    end
+
+    ##
+    # run job synchronously
+    #
+    # see `run` for parameter documentation
+    #
+    # returns a JobRun instance
+    #
+    def self.run(job_id, user_id, options={})
+      # self.enqueue will call this function in sync mode, so if the job run was already created, don't do it again
+      job_run_id = options[:_run_id]
+      job_run_id = create_job_run(job_id, user_id) if job_run_id.nil?
+      # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
+      # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
+      super(job_id, user_id, options.merge(_run_id: job_run_id))
+      # requery from database, since it was already updated in sync mode
+      Desmond::JobRun.find(job_run_id)
     end
 
     ##
@@ -71,6 +89,10 @@ module Desmond
 
     private
 
+    ##
+    # runs the hook with the given +name+
+    # swallows all exceptions, only logging them
+    #
     def run_hook(name)
       self.send name.to_sym, job_run, *self.attrs[:args] if self.respond_to?(name.to_sym)
     rescue Exception => e
@@ -79,10 +101,26 @@ module Desmond
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
     end
 
+    ##
+    # create a job run with the given parameters,
+    # returning its id.
+    #
+    def self.create_job_run(job_id, user_id)
+      e = Desmond::JobRun.create(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
+      e.id
+    end
+
+    ##
+    # returns the JobRun for this instance of the job
+    #
     def job_run
       Desmond::JobRun.find(self.run_id)
     end
 
+    ##
+    # deletes the job marking it as a success if parameter +success+ is true, a failure otherwise.
+    # +details+ are saved with the job run as well.
+    #
     def delete_job(success, details={})
       status = 'done'
       status = 'failed' unless success

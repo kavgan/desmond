@@ -33,6 +33,21 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(1)
   end
 
+  it 'should have synchronous interface' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter += 1
+      end
+    end
+    expect(clazz.run(1, 1).done?).to eq(true)
+    expect(clazz.test_counter).to eq(1)
+  end
+
   it 'should run before hook' do
     clazz = new_job do
       @test_counter = 0
