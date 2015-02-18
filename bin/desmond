@@ -5,8 +5,8 @@ require 'daemons'
 require_relative '../lib/desmond'
 
 #
-# script to run the Que workers in background processes
-# easily manageable using startstop/restart commands
+# script to run the desmond workers in background processes
+# easily manageable using start/stop/restart commands
 #
 
 current_dir = Dir.pwd
