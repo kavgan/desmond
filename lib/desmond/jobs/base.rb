@@ -52,19 +52,20 @@ module Desmond
     # +options+: depends on the implementation of the job
     #
     def run(job_id, user_id, options={})
+      censored_options = censor_hash_keys(options, CENSORED_KEYS)
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
       job_run.update(status: 'running', executed_at: Time.now)
       run_hook(:before)
-      Que.log level: :info, msg: "Starting to execute job #{self.class.name} with (#{job_id}, #{user_id}, #{options})"
+      Que.log level: :info, msg: "Starting to execute job #{self.class.name} with (#{job_id}, #{user_id}, #{censored_options})"
       self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
       self.done if job_run.running?
     rescue => e
-      Que.log level: :error, message: "Error executing job #{self.class.name} with (#{job_id}, #{user_id}, #{options}):"
+      Que.log level: :error, message: "Error executing job #{self.class.name} with (#{job_id}, #{user_id}, #{censored_options}):"
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       self.failed(error: e.message)
     ensure
-      Que.log level: :info, msg: "Finished executing job #{self.class.name} with (#{job_id}, #{user_id}, #{options})"
+      Que.log level: :info, msg: "Finished executing job #{self.class.name} with (#{job_id}, #{user_id}, #{censored_options})"
       # we always want to execute the after hook
       run_hook(:after)
     end
