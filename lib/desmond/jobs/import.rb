@@ -37,8 +37,6 @@ module Desmond
     #   - quote_char
     #
     def execute(job_id, user_id, options={})
-      Que.log level: :info, msg: "Starting to execute import job #{job_id} for user #{user_id}"
-
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?
       bucket = PGUtil.escape_string(options[:s3][:bucket])
@@ -79,8 +77,6 @@ module Desmond
       conn.exec(copy_sql)
 
       self.done(table: full_table_name)
-    ensure
-      Que.log level: :info, msg: "Done executing import job #{job_id} for user #{user_id}"
     end
   end
 end

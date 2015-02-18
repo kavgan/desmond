@@ -80,7 +80,6 @@ module Desmond
     #   - quote_char
     #
     def execute(job_id, user_id, options={})
-      Que.log level: :info, msg: "Starting to execute export job #{job_id} for user #{user_id}"
       options = options.deep_symbolize_keys
       job_run_filename = job_run.filename
       time = job_run.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
@@ -116,8 +115,6 @@ module Desmond
       # everything is done
       details = { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
       self.done(details)
-    ensure
-      Que.log level: :info, msg: "Done executing export job #{job_id} for user #{user_id}"
     end
 
     def self.database_reader(id, query, options)
