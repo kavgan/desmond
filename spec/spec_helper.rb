@@ -17,6 +17,7 @@ ENV['RACK_ENV'] = ENV['RAILS_ENV'] = 'test'
 require 'desmond'
 require 'sinatra/activerecord/rake'
 
+DesmondConfig.logger = nil
 # recreate test database from migrations
 ActiveRecord::Schema.verbose = false # no output for migrations
 Rake::Task['db:drop'].invoke

@@ -24,14 +24,9 @@ require_relative 'desmond/models/job_run'
 # manages the gem's configuration
 #
 class DesmondConfig
-  ##
-  # logger to use
-  #
-  def self.logger=(new_logger)
-    Que.logger = new_logger
-  end
-  def self.logger
-    Que.logger
+  @logger = Logger.new(STDOUT)
+  class << self
+    attr_accessor :logger
   end
 
   ##
@@ -118,7 +113,6 @@ end
 Que.connection = ActiveRecord
 Que.mode = :sync if DesmondConfig.environment == :test
 Que.mode = :off if DesmondConfig.environment != :test
-Que.logger = Logger.new STDOUT if DesmondConfig.environment != :test
 
 # configure log censoring, so that password and AWS secret keys don't end up in the logs
 CENSORED_KEYS = %w(password secret_access_key)
@@ -130,4 +124,17 @@ Que.log_formatter = proc do |data|
     end
   end
   tmp.to_json
+end
+
+#
+# overwriting the get logger method of Que, to always return
+# Desmond's configured logger. Que tends to overwrite the logger
+# in background situations, which we'll ignore by this.
+#
+module Que
+  class << self
+    def logger
+      DesmondConfig.logger
+    end
+  end
 end
