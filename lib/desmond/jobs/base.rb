@@ -52,20 +52,20 @@ module Desmond
     # +options+: depends on the implementation of the job
     #
     def run(job_id, user_id, options={})
-      censored_options = censor_hash_keys(options, CENSORED_KEYS)
+      @censored_options = censor_hash_keys(options, CENSORED_KEYS)
       self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
       job_run.update(status: 'running', executed_at: Time.now)
       run_hook(:before)
-      Que.log level: :info, msg: "Starting to execute job #{self.class.name} with (#{job_id}, #{user_id}, ...)", options: censored_options
+      log_job_event(:info, "Starting to execute job")
       self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
       self.done if job_run.running?
     rescue => e
-      Que.log level: :error, message: "Error executing job #{self.class.name} with (#{job_id}, #{user_id}, ...):", options: censored_options
+      log_job_event(:error, "Error executing job")
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       self.failed(error: e.message)
     ensure
-      Que.log level: :info, msg: "Finished executing job #{self.class.name} with (#{job_id}, #{user_id}, ...)", options: censored_options
+      log_job_event(:info, "Finished executing job")
       # we always want to execute the after hook
       run_hook(:after)
     end
@@ -99,7 +99,7 @@ module Desmond
     def run_hook(name)
       self.send name.to_sym, job_run, *self.attrs[:args] if self.respond_to?(name.to_sym)
     rescue Exception => e
-      Que.log level: :error, message: 'Error executing hook:'
+      log_job_event(:error, "Error executing hook '#{name}' for job")
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
     end
@@ -129,6 +129,12 @@ module Desmond
       status = 'failed' unless success
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
       job_run.update(status: status, details: details, completed_at: Time.now)
+    end
+
+    def log_job_event(level, prefix_str)
+      job_args = self.attrs[:args]
+      msg = "#{prefix_str} #{self.class.name} with (#{job_args[0, job_args.size - 1].join(', ')}, ...)"
+      Que.log level: level, msg: msg, options: @censored_options
     end
   end
 end

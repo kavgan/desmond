@@ -2,7 +2,6 @@
 
 require_relative '../lib/desmond'
 Que.mode = :sync
-Que.logger = Logger.new STDOUT
 
 if __FILE__ == $PROGRAM_NAME
   Desmond::ExportJob.enqueue(

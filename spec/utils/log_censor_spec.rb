@@ -29,4 +29,16 @@ describe 'censor_hash_keys' do
     h_censored = { a: { b: censorval } }
     expect(censor_hash_keys(h, [:b], censorval)).to eq(h_censored)
   end
+
+  it 'should censor symbol with string given' do
+    h = { a: 1 }
+    h_censored = { a: censorval }
+    expect(censor_hash_keys(h, ['a'], censorval)).to eq(h_censored)
+  end
+
+  it 'should censor string with symbol given' do
+    h = { 'a' => 1 }
+    h_censored = { 'a' => censorval }
+    expect(censor_hash_keys(h, [:a], censorval)).to eq(h_censored)
+  end
 end

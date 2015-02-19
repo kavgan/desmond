@@ -13,6 +13,10 @@ def censor_hash_keys(h, keys=[], censorvalue='***censored***')
       nh[key] = censor_hash_keys(h[key], keys, censorvalue)
     elsif keys.include?(key)
       nh[key] = censorvalue
+    elsif key.is_a?(String) && keys.include?(key.to_sym)
+      nh[key] = censorvalue
+    elsif key.is_a?(Symbol) && keys.include?(key.to_s)
+      nh[key] = censorvalue
     else
       nh[key] = h[key]
     end
