@@ -83,9 +83,9 @@ describe Desmond::ExportJob do
         return_headers: false
     })
     expect(run.done?).to eq(true)
-    expect(run.details).to have_key('bucket')
-    expect(run.details).to have_key('key')
-    expect(run.details).to have_key('access_key')
+    expect(run.result).to have_key('bucket')
+    expect(run.result).to have_key('key')
+    expect(run.result).to have_key('access_key')
   end
 
   it 'should not matter what value fetch_size has' do

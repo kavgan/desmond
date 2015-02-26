@@ -80,6 +80,13 @@ module Desmond
     end
 
     ##
+    # return value of the job
+    #
+    def result
+      self['details']['_job_result']
+    end
+
+    ##
     # error saved by the job
     #
     def error

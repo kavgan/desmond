@@ -15,6 +15,8 @@ require_relative 'desmond/streams/s3'
 
 require_relative 'desmond/job_run_finders'
 require_relative 'desmond/jobs/base'
+require_relative 'desmond/jobs/template_success'
+require_relative 'desmond/jobs/template_failure'
 require_relative 'desmond/jobs/export'
 require_relative 'desmond/jobs/import'
 

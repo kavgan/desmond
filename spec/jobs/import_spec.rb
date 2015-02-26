@@ -93,7 +93,7 @@ describe Desmond::ImportJob do
     fixed_table_name = "desmond_test_#{rand(1024)}"
     expect(run_import('spec/import_comma.csv', db: {
       table: fixed_table_name
-    }).details).to have_key('table')
+    }).result).to have_key('table')
   end
 
   it 'should complain about missing table name' do

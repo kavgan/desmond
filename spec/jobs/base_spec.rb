@@ -42,9 +42,10 @@ describe Desmond::BaseJob do
 
       define_method(:execute) do |job_id, user_id, options={}|
         self.class.test_counter += 1
+        42
       end
     end
-    expect(clazz.run(1, 1).done?).to eq(true)
+    expect(clazz.run(1, 1)).to eq(42)
     expect(clazz.test_counter).to eq(1)
   end
 
@@ -140,13 +141,24 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(2)
   end
 
-  it 'should save data into job run' do
+  it 'should save return value into job run' do
     clazz = new_job do
       define_method(:execute) do |job_id, user_id, options={}|
-        done(testdata: true)
+        { testdata: true, 'testdata2' => 42, testdata3: 42.42 } # testing different types
       end
     end
-    expect(clazz.enqueue(1, 1).details).to eq('testdata' => true)
+    expect(clazz.enqueue(1, 1).result).to eq('testdata' => true, 'testdata2' => 42, 'testdata3' => 42.42)
+  end
+
+  it 'should refuse to save non-json data into job run' do
+    clazz = new_job do
+      define_method(:execute) do |job_id, user_id, options={}|
+        Object.new
+      end
+    end
+    run = clazz.enqueue(1, 1)
+    expect(run.failed?).to eq(true)
+    expect(run.error).to eq('Invalid result type')
   end
 
   it 'should fail the job on uncaught exception' do

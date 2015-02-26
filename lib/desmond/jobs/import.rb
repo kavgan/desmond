@@ -76,7 +76,7 @@ module Desmond
       copy_sql = "COPY #{full_table_name}(#{copy_columns}) FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' TRIMBLANKS CSV QUOTE '#{csv_quote_char}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
       conn.exec(copy_sql)
 
-      self.done(table: full_table_name)
+      { table: full_table_name }
     end
   end
 end

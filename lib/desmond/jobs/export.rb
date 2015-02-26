@@ -113,8 +113,7 @@ module Desmond
       end
 
       # everything is done
-      details = { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
-      self.done(details)
+      { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
     end
 
     def self.database_reader(id, query, options)
