@@ -63,14 +63,12 @@ module Desmond
     # timeout reached.
     #
     def self.listen(connection, channel, timeout=nil)
-      connection = get_pg_connection(connection)
+      pg_conn = get_pg_connection(connection)
       escaped_channel = self.escape_identifier(channel)
-      connection.exec("LISTEN #{escaped_channel}")
-      return !connection.wait_for_notify(timeout).nil?
-    rescue => e
-      p e.message
+      pg_conn.exec("LISTEN #{escaped_channel}")
+      return !pg_conn.wait_for_notify(timeout).nil?
     ensure
-      connection.exec("UNLISTEN *")
+      pg_conn.exec("UNLISTEN *") unless pg_conn.nil?
     end
 
     ##

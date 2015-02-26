@@ -6,9 +6,6 @@ describe Desmond::BaseJob do
       def self.name
         "DemondTestJob#{rand(1024)}"
       end
-      def name
-        self.class.name
-      end
 
       self.instance_eval &block unless block.nil?
     end
@@ -65,6 +62,22 @@ describe Desmond::BaseJob do
       end
     end
     expect(clazz.run(1, 1)).to eq(42)
+    expect(clazz.test_counter).to eq(1)
+  end
+
+  it 'should throw exception on failure when using synchronous interface' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter += 1
+        fail 'Expected behavior'
+      end
+    end
+    expect{ clazz.run(1, 1) }.to raise_error('Expected behavior')
     expect(clazz.test_counter).to eq(1)
   end
 
@@ -163,10 +176,10 @@ describe Desmond::BaseJob do
   it 'should save return value into job run' do
     clazz = new_job do
       define_method(:execute) do |job_id, user_id, options={}|
-        { testdata: true, 'testdata2' => 42, testdata3: 42.42 } # testing different types
+        { testdata: true, 'testdata2' => 42, testdata3: 42.42, testdata4: [1, 2] } # testing different types
       end
     end
-    expect(clazz.enqueue(1, 1).result).to eq('testdata' => true, 'testdata2' => 42, 'testdata3' => 42.42)
+    expect(clazz.enqueue(1, 1).result).to eq('testdata' => true, 'testdata2' => 42, 'testdata3' => 42.42, 'testdata4' => [1, 2])
   end
 
   it 'should refuse to save non-json data into job run' do

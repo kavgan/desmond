@@ -3,7 +3,6 @@ module Desmond
   # Model representing a run of any job
   #
   class JobRun < ActiveRecord::Base
-    # TODO put into Desmond module directly
     STATUS_QUEUED = 'queued'
     STATUS_RUNNING = 'running'
     STATUS_SUCCESS = 'done'
