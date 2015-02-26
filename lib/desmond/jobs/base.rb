@@ -131,7 +131,9 @@ module Desmond
       status = 'done'
       status = 'failed' unless success
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
-      job_run.update(status: status, completed_at: Time.now)
+      jr = job_run
+      jr.update(status: status, completed_at: Time.now)
+      PGUtil.notify(ActiveRecord::Base.connection, "job_run_#{jr.id}")
     end
 
     ##

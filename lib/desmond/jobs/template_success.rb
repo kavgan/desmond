@@ -9,6 +9,7 @@ module Desmond
     # method specifying what should be done at execution
     #
     def execute(job_id, user_id, options={})
+      sleep(10)
       42
     end
   end

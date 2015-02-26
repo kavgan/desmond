@@ -2,7 +2,7 @@ require_relative '../spec_helper'
 
 describe Desmond::BaseJob do
   def new_job(&block)
-    Class.new(Desmond::BaseJob) do
+    clazz = Class.new(Desmond::BaseJob) do
       def self.name
         "DemondTestJob#{rand(1024)}"
       end
@@ -11,6 +11,25 @@ describe Desmond::BaseJob do
       end
 
       self.instance_eval &block unless block.nil?
+    end
+    # create a global name for it, so we can run it async (worker needs to be able to find the class by name)
+    Object.const_set(clazz.name, clazz)
+    clazz
+  end
+
+  # changes working mode to async for async tests, use `async_worker` to run jobs
+  def async
+    prev_mode = Que.mode
+    Que.mode = :off
+    yield
+  ensure
+    Que.mode = prev_mode
+  end
+
+  # works on one job in the que in a separate thread
+  def async_worker
+    Thread.new do
+      Que::Job.work
     end
   end
 
@@ -184,5 +203,35 @@ describe Desmond::BaseJob do
     run = clazz.enqueue(1, 1)
     expect(run.done?).to eq(true)
     expect(run.error).to eq(nil)
+  end
+
+  it 'should be able to wait for completion' do
+    self.async do
+      clazz = new_job do
+        define_method(:execute) do |job_id, user_id, options={}|
+          sleep(2)
+        end
+      end
+      run = clazz.enqueue(1, 1)
+      expect(run.finished?).to eq(false)
+      self.async_worker
+      run.wait_until_finished
+      expect(run.done?).to eq(true)
+    end
+  end
+
+  it 'should be able to timeout while waiting for completion' do
+    self.async do
+      clazz = new_job do
+        define_method(:execute) do |job_id, user_id, options={}|
+          sleep(3)
+        end
+      end
+      run = clazz.enqueue(1, 1)
+      expect(run.finished?).to eq(false)
+      self.async_worker
+      run.wait_until_finished(1)
+      expect(run.finished?).to eq(false)
+    end
   end
 end

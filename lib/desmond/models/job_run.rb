@@ -38,6 +38,27 @@ module Desmond
     end
 
     ##
+    # waits until job run finished executing
+    # waits a max of +timeout+ secs and then returns.
+    # if +timeout+ is nil, wait indefinitly.
+    # +timeout+ can be a decimal to get under 1sec resolution
+    # returns self if job is completed, nil otherwise
+    #
+    def wait_until_finished(timeout=nil)
+      conn = ActiveRecord::Base.connection_pool.checkout
+      # trying to use only finished?, in case implementations
+      # of unfinished? and finished? diverge accidently
+      return self if self.finished?
+      # use postgres as a conditional variable across processes/machines
+      PGUtil.listen(conn, "job_run_#{self.id}", timeout)
+      self.reload # reload object from database to check if something changed
+      return nil unless self.finished?
+      self
+    ensure
+      ActiveRecord::Base.connection_pool.checkin(conn)
+    end
+
+    ##
     # is this run still queued?
     #
     def queued?
@@ -56,6 +77,14 @@ module Desmond
     #
     def unfinished?
       (self.queued? || self.running?)
+    end
+
+    ##
+    # is this run finished executing?
+    # doesn't matter if it failed or suceeded
+    #
+    def finished?
+      (self.done? || self.failed?)
     end
 
     ##

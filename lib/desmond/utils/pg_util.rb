@@ -15,7 +15,7 @@ module Desmond
     # - password: custom password to use for connection
     # - timeout: connection timeout to use
     #
-    def self.dedicated_connection(options)
+    def self.dedicated_connection(options={})
       ar_config = options[:connection_id]
       username = options[:username]
       password = options[:password]
@@ -40,12 +40,63 @@ module Desmond
       )
     end
 
+    ##
+    # escapes aregular string for SQL
+    #
     def self.escape_string(str)
       PG::Connection.escape_string(str)
     end
 
+    ##
+    # escapes a SQL identifier
+    #
     def self.escape_identifier(str)
       PG::Connection.quote_ident(str)
     end
+
+    ##
+    # listens to notification +channel+ in postgres.
+    # waits a maximum of +timeout+ seconds (can be a decimal)
+    # +connection+ must be a postgres connection either from
+    # the pg gem or ActiveRecord.
+    # returns true/false depending if notification was received or
+    # timeout reached.
+    #
+    def self.listen(connection, channel, timeout=nil)
+      connection = get_pg_connection(connection)
+      escaped_channel = self.escape_identifier(channel)
+      connection.exec("LISTEN #{escaped_channel}")
+      return !connection.wait_for_notify(timeout).nil?
+    rescue => e
+      p e.message
+    ensure
+      connection.exec("UNLISTEN *")
+    end
+
+    ##
+    # send a postgres notification +channel+.
+    # +connection+ must be a postgres connection either from
+    # the pg gem or ActiveRecord.
+    #
+    def self.notify(connection, channel)
+      escaped_channel = self.escape_identifier(channel)
+      get_pg_connection(connection).exec("NOTIFY #{escaped_channel}")
+    end
+
+    ##
+    # extracts PG::Connection out of ActiveRecord +connection+,
+    # or returns straigt if already a PG::Connection.
+    # raises exception otherwise.
+    #
+    def self.get_pg_connection(connection)
+      if connection.is_a?(ActiveRecord::ConnectionAdapters::AbstractAdapter)
+        get_pg_connection(connection.instance_variable_get(:@connection))
+      elsif connection.is_a?(PG::Connection)
+        connection
+      else
+        fail 'Unsupported connection!'
+      end
+    end
+    private_class_method :get_pg_connection
   end
 end
