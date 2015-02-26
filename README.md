@@ -5,11 +5,11 @@ Importing/exporting functionality for the RedShift data warehouse
 
 Installation
 ---------------------
-Run `rake desmond:migrate` to create the necessary migrations in your migration folder 'db/migrate'.
+Desmond hooks into db:migrate, so just execute `rake db:migrate` and it will copy its migrations and execute them.
 
 Configuration
 ---------------------
-Desmond expects the file 'config/desmond.yml' to exist and uses that to determine where it can find the other configuration files it needs. See 'config/desmond.sample.yml' for options and their default.
+Desmond expects the file 'config/desmond.yml' to exist and uses that to determine where it can find the other configuration files it needs. See 'config/desmond.sample.yml' for options and their defaults.
 
 Usage
 ---------------------
@@ -20,7 +20,7 @@ You can also define custom Jobs and piggy-back on Desmond's job system by inheri
 
 Development
 ---------------------
-For development on Desmond make sure you run `rake desmond:migrate` to create Que's job table and `rake db:migrate` to run Desmond's migrations.
+For development on Desmond make sure you run `rake db:migrate` to create Que's job table and run Desmond's migrations.
 
 
 Running tests

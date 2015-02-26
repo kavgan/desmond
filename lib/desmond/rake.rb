@@ -48,8 +48,17 @@ def copy_migration(source_file, dest_folder)
   FileUtils.cp(source_file, dest_file)
 end
 
+# hook into db:migrate to create our migrations and migrate Que
+namespace :db do
+  task :migrate => :desmond_migrate
+
+  task :desmond_migrate do
+    Rake::Task['desmond:migrate'].invoke
+  end
+end
+
 namespace :desmond do
-  desc 'Setup database for desmond'
+  desc 'Setup database for desmond manually'
   task :migrate do
     Que.migrate! version: 3
 

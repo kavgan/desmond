@@ -113,6 +113,7 @@ end
 
 # configure que
 Que.connection = ActiveRecord
+ActiveRecord::Base.schema_format = :sql # otherwise the que_jobs table gets missed
 Que.mode = :sync if DesmondConfig.environment == :test
 Que.mode = :off if DesmondConfig.environment != :test
 
