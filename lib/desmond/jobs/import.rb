@@ -35,6 +35,7 @@ module Desmond
     #   - headers
     #   - return_headers
     #   - quote_char
+    #   - skip_header_row (additional option to skip header row regardless of headers option)
     #
     def execute(job_id, user_id, options={})
       fail 'No database options!' if options[:db].nil?
@@ -73,7 +74,18 @@ module Desmond
       s3_credentials = PGUtil.escape_string(s.credentials)
       csv_col_sep = PGUtil.escape_string(r.options[:col_sep])
       csv_quote_char = PGUtil.escape_string(r.options[:quote_char])
-      copy_sql = "COPY #{full_table_name}(#{copy_columns}) FROM 's3://#{bucket}/#{s3_key}' WITH CREDENTIALS AS '#{s3_credentials}' TRIMBLANKS CSV QUOTE '#{csv_quote_char}' DELIMITER '#{csv_col_sep}'#{(options[:csv][:headers] == :first_row) ? ' IGNOREHEADER 1' : ''};"
+      skip_first_row = (options[:csv][:headers] == :first_row || options[:csv][:skip_header_row])
+      copy_sql = <<-SQL
+        COPY #{full_table_name}(#{copy_columns})
+        FROM 's3://#{bucket}/#{s3_key}'
+        WITH CREDENTIALS AS '#{s3_credentials}'
+        TRIMBLANKS
+        CSV
+        QUOTE '#{csv_quote_char}'
+        DELIMITER '#{csv_col_sep}'
+        #{(skip_first_row) ? ' IGNOREHEADER 1' : ''}
+        ;
+      SQL
       conn.exec(copy_sql)
 
       { table: full_table_name }
