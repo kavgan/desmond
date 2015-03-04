@@ -247,4 +247,30 @@ describe Desmond::BaseJob do
       expect(run.finished?).to eq(false)
     end
   end
+
+  it 'should pass options symbolized' do
+    clazz = new_job do
+      @options_before = nil
+      @options_execute = nil
+      @options_after = nil
+      singleton_class.class_eval do
+        attr_accessor :options_before, :options_execute, :options_after
+      end
+
+      define_method(:before) do |job_run, job_id, user_id, options={}|
+        self.class.options_before = options
+      end
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.options_execute = options
+      end
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        self.class.options_after = options
+      end
+    end
+    expect(clazz.enqueue(1, 1, 'test1' => true, test2: true).done?).to eq(true)
+    options_expected = { test1: true, test2: true }
+    expect(clazz.options_before).to eq(options_expected)
+    expect(clazz.options_execute).to eq(options_expected)
+    expect(clazz.options_after).to eq(options_expected)
+  end
 end

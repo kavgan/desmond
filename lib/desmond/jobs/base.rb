@@ -20,7 +20,7 @@ module Desmond
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job.
       # the async option differentiates between enqueue in sync mode mode and self.run in sync mode
-      super(job_id, user_id, options.merge(_run_id: job_run_id, async: true))
+      super(job_id, user_id, options.merge(_run_id: job_run_id))
       # requery from database, since it was already updated in sync mode
       Desmond::JobRun.find(job_run_id)
     end
@@ -32,10 +32,16 @@ module Desmond
     #
     # returns the return value of the job's execute method
     #
+    # TODO shouldn't create a job run? polizei is gonna create a lot of them, ability to delete old one?
     def self.run(job_id, user_id, options={})
       # self.enqueue will call this function in sync mode, so if the job run was already created, don't do it again
       job_run_id = options[:_run_id]
-      job_run_id = create_job_run(job_id, user_id) if job_run_id.nil?
+      called_by_enqueue = true # enqueue can call us, in which case the behavior of this method will be slightly different
+      if job_run_id.nil?
+        # not already create by `enqueue`
+        called_by_enqueue = false
+        job_run_id = create_job_run(job_id, user_id)
+      end
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job
       super(job_id, user_id, options.merge(_run_id: job_run_id))
@@ -46,7 +52,7 @@ module Desmond
       else
         # in sync mode, enqueue directly runs this method, where we don't want to throw an exception,
         # as this will not happen in async mode
-        fail jr.error unless options[:async] # async option is set when ran through 'enqueue'
+        fail jr.error unless called_by_enqueue # only raise exception if not called by 'enqueue'
       end
     end
 
@@ -60,13 +66,16 @@ module Desmond
     # +options+: depends on the implementation of the job
     #
     def run(job_id, user_id, options={})
-      @censored_options = censor_hash_keys(options, CENSORED_KEYS)
-      self.run_id = options[:_run_id] # retrieve run_id from options and safe it in the instance
+      self.run_id = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
+      @job_id = job_id
+      @user_id = user_id
+      @symbolized_options = options.deep_symbolize_keys
+      @censored_options = censor_hash_keys(@symbolized_options, CENSORED_KEYS)
       jr = job_run # cache job run
       jr.update(status: 'running', executed_at: Time.now)
       run_hook(:before)
       log_job_event(:info, "Starting to execute job")
-      result = self.send :execute, job_id, user_id, options if self.respond_to?(:execute)
+      result = self.send :execute, job_id, user_id, @symbolized_options if self.respond_to?(:execute)
       # check that we can actually persist the result
       check_result_type(result)
       jr = job_run # update cache (might have been changed by execute)
@@ -109,7 +118,7 @@ module Desmond
     # swallows all exceptions, only logging them
     #
     def run_hook(name)
-      self.send name.to_sym, job_run, *self.attrs[:args] if self.respond_to?(name.to_sym)
+      self.send name.to_sym, job_run, @job_id, @user_id, @symbolized_options if self.respond_to?(name.to_sym)
     rescue Exception => e
       log_job_event(:error, "Error executing hook '#{name}' for job")
       Que.log level: :error, exception: e.message

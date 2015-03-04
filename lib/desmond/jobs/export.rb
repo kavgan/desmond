@@ -80,7 +80,6 @@ module Desmond
     #   - quote_char
     #
     def execute(job_id, user_id, options={})
-      options = options.deep_symbolize_keys
       job_run_filename = job_run.filename
       time = job_run.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
       export_id = "#{DesmondConfig.app_id}_export_#{job_id}_#{user_id}_#{time}"

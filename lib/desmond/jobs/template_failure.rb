@@ -7,6 +7,7 @@ module Desmond
   class TemplateFailureJob < BaseJob
     ##
     # method specifying what should be done at execution
+    # +options+ will always be passed symbolized
     #
     def execute(job_id, user_id, options={})
       ActiveRecord::Base.transaction do

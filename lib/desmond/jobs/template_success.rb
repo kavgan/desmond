@@ -7,6 +7,7 @@ module Desmond
   class TemplateSuccessJob < BaseJob
     ##
     # method specifying what should be done at execution
+    # +options+ will always be passed symbolized
     #
     def execute(job_id, user_id, options={})
       sleep(10)
