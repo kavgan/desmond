@@ -4,7 +4,7 @@ describe Desmond::BaseJob do
   def new_job(&block)
     clazz = Class.new(Desmond::BaseJob) do
       def self.name
-        "DemondTestJob#{rand(1024)}"
+        "DemondTestJob#{rand(4096)}"
       end
 
       self.instance_eval &block unless block.nil?
