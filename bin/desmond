@@ -9,13 +9,12 @@ require_relative '../lib/desmond'
 # easily manageable using start/stop/restart commands
 #
 
-$PROGRAM_NAME = "desmond_#{DesmondConfig.app_id}"
-
 current_dir = Dir.pwd
 options = {}
 options = { dir_mode: :normal, dir: ARGV[1] } if ARGV.size > 1
 Daemons.run_proc(File.basename(__FILE__), options) do
   Dir.chdir(current_dir)
+  $PROGRAM_NAME = "desmond_#{DesmondConfig.app_id}"
   Rake.application.init
   Rake.application.load_rakefile
   Rake::Task['desmond:run'].invoke
