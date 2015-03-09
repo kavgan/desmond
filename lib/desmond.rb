@@ -24,9 +24,11 @@ require_relative 'desmond/models/job_run'
 # manages the gem's configuration
 #
 class DesmondConfig
+  @is_daemon = false
   @logger = Logger.new(STDOUT)
   class << self
     attr_accessor :logger
+    attr_reader :is_daemon
   end
 
   ##
@@ -100,6 +102,11 @@ class DesmondConfig
     ActiveSupport::HashWithIndifferentAccess.new(YAML.load_file(file))
   end
   private_class_method :load_config_file
+
+  def self.set_daemon
+    @is_daemon = true
+  end
+  private_class_method :set_daemon
 end
 
 # configure ActiveRecord, but the app using us should really do this,

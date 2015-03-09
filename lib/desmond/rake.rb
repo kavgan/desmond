@@ -70,6 +70,7 @@ namespace :desmond do
   task :run do
     require 'que/rake_tasks' # so that que's tasks don't get directly included in using apps
     ActiveRecord::Base.logger = DesmondConfig.logger
+    DesmondConfig.send :set_daemon
     Rake::Task['que:work'].invoke
   end
 
