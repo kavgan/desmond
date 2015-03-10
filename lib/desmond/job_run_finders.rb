@@ -25,7 +25,7 @@ module Desmond
       # optionally filter by +user_id+.
       #
       def last_runs(job_id, n, user_id=nil)
-        job_runs(job_id, user_id).order(queued_at: :desc).take(n)
+        job_runs(job_id, nil, user_id).order(queued_at: :desc).take(n)
       end
 
       ##
