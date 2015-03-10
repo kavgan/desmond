@@ -4,6 +4,39 @@ module Desmond
   # only used for faster testing, can probably be optimized (inserts one row at a time)
   #
   class ImportPgJob < BaseJob
+    ##
+    # runs an import
+    # see `BaseJob` for information on arguments except +options+.
+    #
+    # the following +options+ are required:
+    # - db
+    #   - connection_id: ActiveRecord connection id used to connect to database
+    #   - table: name of import table
+    # - s3
+    #   - bucket: bucket of csv file to be imported
+    #   - key: key of csv file to be imported
+    #   - access_key_id, if not configured globally
+    #   - secret_access_key, if not configured globally
+    #
+    # the following options are required when `DesmondConfig.system_connection_allowed?` is false:
+    # - db
+    #   - username: database username
+    #   - password: database password
+    #
+    # the following +options+ are additionally supported:
+    # - db
+    #   - dropifexists: drop import table if it exists
+    #   - timeout: connection timeout to database
+    # - s3
+    #   - everything supported by AWS::S3.new
+    # - csv (see ruby's CSV documentation)
+    #   - col_sep
+    #   - row_sep
+    #   - headers
+    #   - return_headers
+    #   - quote_char
+    #   - skip_header_row (additional option to skip header row regardless of headers option)
+    #
     def execute(job_id, user_id, options={})
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?
