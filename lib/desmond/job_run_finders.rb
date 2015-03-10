@@ -11,8 +11,13 @@ module Desmond
     # class methods helping find a particular job run
     #
     module ClassMethods
+      ##
+      # returns the last runfor the given +job_id+.
+      # optionally filter by +user_id+.
+      # returns nil if none available.
+      #
       def last_run(job_id, user_id=nil)
-        last_runs(job_id, 1, user_id)
+        tmp = last_runs(job_id, 1, user_id).first
       end
 
       ##
