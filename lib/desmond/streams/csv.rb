@@ -30,14 +30,16 @@ module Desmond
         # - headers
         # - return_headers
         # - quote_char
+        # - skip_header_row (not available in ruby's CSV)
         #
         def initialize(reader, options={})
           super()
           @options = options.symbolize_keys
+          @skip_header_row = !!@options.delete(:skip_header_row)
           @first_row_headers = false
-          if @options[:headers] == :first_row || @options[:headers] == 'first_row'
+          if @options[:headers] == :first_row || @options[:headers] == 'first_row' || @skip_header_row
             @first_row_headers = true
-            @options[:headers] = nil
+            @options[:headers] = nil unless @skip_header_row
           end
           @reader = Streams::LineReader.new(reader, newline: options[:row_sep])
           @buff = nil
@@ -47,7 +49,7 @@ module Desmond
         # returns the column headers
         #
         def headers
-          @buff = self.read if @first_row_headers && @options[:headers].nil?
+          @buff = self.read if @first_row_headers
           super()
         end
 
@@ -66,8 +68,9 @@ module Desmond
           return nil if tmp.nil?
           tmp = ::CSV.parse_line(tmp, @options)
           # if the first row contains headers parse them
-          if @first_row_headers && @options[:headers].nil?
-            @options[:headers] = tmp
+          if @first_row_headers
+            @first_row_headers = false
+            @options[:headers] = tmp unless @skip_header_row
             return self.read
           end
           # always return an array of columns
