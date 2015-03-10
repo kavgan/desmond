@@ -1,6 +1,6 @@
 require_relative '../spec_helper'
 
-describe Desmond::ImportRsJob do
+describe Desmond::ImportJob do
   RS_CONN_ID = 'redshift_test'
   let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: RS_CONN_ID) }
 
@@ -17,7 +17,7 @@ describe Desmond::ImportRsJob do
     begin
       s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, File.read(file))
 
-      run = Desmond::ImportRsJob.enqueue('JobId', 'UserId', {
+      run = Desmond::ImportJob.enqueue('JobId', 'UserId', {
           db: {
             connection_id: RS_CONN_ID,
             schema: @config[:import_schema],

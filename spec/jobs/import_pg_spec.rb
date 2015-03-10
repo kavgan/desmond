@@ -1,6 +1,6 @@
 require_relative '../spec_helper'
 
-describe Desmond::ImportPgJob do
+describe Desmond::ImportJob do
   PG_CONN_ID = 'test'
 
   #
@@ -16,7 +16,7 @@ describe Desmond::ImportPgJob do
     begin
       s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, File.read(file))
 
-      run = Desmond::ImportPgJob.enqueue('JobId', 'UserId', {
+      run = Desmond::ImportJob.enqueue('JobId', 'UserId', {
           db: {
             connection_id: PG_CONN_ID,
             table: unique_name

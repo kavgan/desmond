@@ -9,6 +9,7 @@ module Desmond
       #
       class S3Reader < Streams::Reader
         DEFAULT_READ_SIZE = 4096
+        attr_reader :bucket, :key
 
         def initialize(bucket, key, options={})
           @bucket = bucket
