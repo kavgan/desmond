@@ -4,6 +4,9 @@ module Desmond
   ##
   # template for custom jobs
   #
+  # Please see `BaseJob` class documentation on how to run
+  # any job using its general interface.
+  #
   class TemplateSuccessJob < BaseJob
     ##
     # method specifying what should be done at execution

@@ -3,6 +3,9 @@ module Desmond
   # job importing data into Postgres from S3
   # only used for faster testing, can probably be optimized (inserts one row at a time)
   #
+  # Please see `BaseJob` class documentation on how to run
+  # any job using its general interface.
+  #
   class ImportPgJob < BaseJob
     ##
     # runs an import

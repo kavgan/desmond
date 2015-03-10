@@ -1,8 +1,11 @@
 module Desmond
   ##
   # base class for queueable jobs.
-  # override 'run' method in subclasses to specify behavior.
-  # template available in 'template.rb'.
+  # implement 'execute' instance method in subclasses to specify behavior.
+  # templates available in 'template_*.rb'.
+  #
+  # schedule for background processing using class method `enqueue`.
+  # run immediately blocking using class method `run`.
   #
   class BaseJob < ::Que::Job
     include JobRunFinders
@@ -28,7 +31,7 @@ module Desmond
     ##
     # run job synchronously
     #
-    # see `run` for parameter documentation
+    # see instance method `run` for parameter documentation
     #
     # returns the return value of the job's execute method
     #

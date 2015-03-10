@@ -6,6 +6,9 @@ module Desmond
   ##
   # job exporting data out of PostgreSQL compatible databases (e.g. AWS RedShift) into S3
   #
+  # Please see `BaseJob` class documentation on how to run
+  # any job using its general interface.
+  #
   class ExportJob < BaseJob
     ##
     # tests an export, only returning one patch of database rows directly
