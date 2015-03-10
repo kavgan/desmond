@@ -89,6 +89,8 @@ module Desmond
       conn.exec(copy_sql)
 
       { table: full_table_name }
+    ensure
+      conn.close unless conn.nil?
     end
   end
 end
