@@ -1,7 +1,8 @@
 require_relative '../spec_helper'
 
-describe Desmond::ImportPgJob do
-  PG_CONN_ID = 'test'
+describe Desmond::ImportRsJob do
+  RS_CONN_ID = 'redshift_test'
+  let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: RS_CONN_ID) }
 
   #
   # runs an import and returns the job run
@@ -16,9 +17,10 @@ describe Desmond::ImportPgJob do
     begin
       s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, File.read(file))
 
-      run = Desmond::ImportPgJob.enqueue('JobId', 'UserId', {
+      run = Desmond::ImportRsJob.enqueue('JobId', 'UserId', {
           db: {
-            connection_id: PG_CONN_ID,
+            connection_id: RS_CONN_ID,
+            schema: @config[:import_schema],
             table: unique_name
           },
           s3: {
@@ -41,19 +43,20 @@ describe Desmond::ImportPgJob do
     run
   ensure
     begin
-      ActiveRecord::Base.connection.execute("DROP TABLE IF EXISTS #{table}") unless table.nil?
+      conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless table.nil?
     rescue => e
       # ignore failed query, tested invalid credentials
     end
   end
+
   #
   # runs an import and returns the database rows
   #
   def run_import_and_return_rows(file, options={})
     run, table = __run_import(file, options)
-    ActiveRecord::Base.connection.execute("SELECT * FROM #{table}").to_a
+    conn.exec("SELECT * FROM #{@config[:import_schema]}.#{table}").to_a
   ensure
-    ActiveRecord::Base.connection.execute("DROP TABLE IF EXISTS #{table}") unless table.nil? || options[:donotdeletetable]
+    conn.exec("DROP TABLE IF EXISTS #{@config[:import_schema]}.#{table}") unless table.nil? || options[:donotdeletetable]
   end
 
   it 'should import a pipe-delimited csv' do

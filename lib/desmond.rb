@@ -17,6 +17,7 @@ require_relative 'desmond/job_run_finders'
 require_relative 'desmond/jobs/base'
 require_relative 'desmond/jobs/export'
 require_relative 'desmond/jobs/import'
+require_relative 'desmond/jobs/import_rs'
 require_relative 'desmond/jobs/import_pg'
 
 require_relative 'desmond/models/job_run'
