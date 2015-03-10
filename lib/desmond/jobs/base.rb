@@ -10,6 +10,7 @@ module Desmond
   class BaseJob < ::Que::Job
     include JobRunFinders
     attr_accessor :run_id
+    attr_reader :job_id, :user_id
 
     ##
     # queue this job for execution
@@ -94,7 +95,11 @@ module Desmond
     ensure
       log_job_event(:info, "Finished executing job")
       # we always want to execute the after hook
+      jr = job_run
+      run_hook(:success) if jr.done?
+      run_hook(:error) if jr.failed?
       run_hook(:after)
+      PGUtil.notify(ActiveRecord::Base.connection, "job_run_#{jr.id}")
     end
 
     ##
@@ -103,7 +108,6 @@ module Desmond
     def failed(error)
       delete_job(false)
       job_run.update(details: { error: error })
-      run_hook(:error)
     end
 
     ##
@@ -111,7 +115,13 @@ module Desmond
     #
     def done
       delete_job(true)
-      run_hook(:success)
+    end
+
+    ##
+    # return the symbolized options the job was run with
+    #
+    def options
+      @symbolized_options
     end
 
     private
@@ -133,7 +143,7 @@ module Desmond
     # returning its id.
     #
     def self.create_job_run(job_id, user_id)
-      e = Desmond::JobRun.create(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
+      e = Desmond::JobRun.create!(job_id: job_id, job_class: self.name, user_id: user_id, status: 'queued', queued_at: Time.now)
       e.id
     end
 
@@ -153,7 +163,6 @@ module Desmond
       destroy if Que.mode != :sync # Que doesn't in the database in sync mode
       jr = job_run
       jr.update(status: status, completed_at: Time.now)
-      PGUtil.notify(ActiveRecord::Base.connection, "job_run_#{jr.id}")
     end
 
     ##
@@ -167,6 +176,7 @@ module Desmond
         result.values.each { |v| check_result_type(v) }
       else
         unless result.nil? || result.is_a?(Numeric) || result.is_a?(Symbol) || result.is_a?(String) || result.is_a?(TrueClass) || result.is_a?(FalseClass)
+          Que.log level: :error, msg: 'Invalid result type', result: result
           fail 'Invalid result type'
         end
       end
