@@ -51,7 +51,7 @@ module Desmond
       # redshift supports schemas, postgres doesn't
       schema_name = options[:db][:schema] || ''
       schema_name = PGUtil.escape_identifier(schema_name) unless schema_name.empty?
-      schema_name = '' if self.class.get_database_adapter(options) == 'postgres'
+      schema_name = '' if self.class.get_database_adapter(options) != 'redshift'
 
       # retrieve table name
       table_name = options[:db][:table]
