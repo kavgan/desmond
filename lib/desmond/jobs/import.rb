@@ -76,9 +76,12 @@ module Desmond
         fail 'No CSV headers!' if headers.empty?
 
         # construct create table query out of CSV headers
+        column_types = options[:db][:types] || []
         create_table_sql  = "CREATE TABLE #{full_table_name} ("
-        create_table_sql += headers.map do |header|
-          "#{PGUtil.escape_identifier(header)} VARCHAR"
+        create_table_sql += headers.zip(column_types).map do |header, type|
+          column_type = 'VARCHAR'
+          column_type = type unless type.nil?
+          "#{PGUtil.escape_identifier(header)} #{column_type}"
         end.join(',')
         create_table_sql += ');'
 
