@@ -81,6 +81,63 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(1)
   end
 
+  it 'should throw exception when using synchronous interface and job raised exception' do
+    class TestError < StandardError; end
+    test_exception = TestError.new('Expected behavior')
+
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter += 1
+        raise test_exception
+      end
+    end
+    caught_exception = nil
+    begin
+      clazz.run(1, 1)
+    rescue => e
+      caught_exception = e
+    end
+    expect(caught_exception).to eq(test_exception)
+    expect(clazz.test_counter).to eq(1)
+  end
+
+  it 'should run hooks in synchronous mode' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:before) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 1 if self.class.test_counter == 0
+      end
+
+      define_method(:error) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 3 if self.class.test_counter == 2
+      end
+
+      define_method(:success) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter += 1 # shouldn't be executed
+      end
+
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 4 if self.class.test_counter == 3
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter = 2 if self.class.test_counter == 1
+        42
+      end
+    end
+    expect(clazz.run(1, 1)).to eq(42)
+    expect(clazz.test_counter).to eq(4)
+  end
+
   it 'should run before hook' do
     clazz = new_job do
       @test_counter = 0
@@ -108,7 +165,7 @@ describe Desmond::BaseJob do
       end
 
       define_method(:error) do |job_run, job_id, user_id, options={}|
-        self.class.test_counter = 1 if self.class.test_counter == 0
+        self.class.test_counter = 2 if self.class.test_counter == 1
       end
 
       define_method(:success) do |job_run, job_id, user_id, options={}|
@@ -116,18 +173,19 @@ describe Desmond::BaseJob do
       end
 
       define_method(:after) do |job_run, job_id, user_id, options={}|
-        self.class.test_counter = 2 if self.class.test_counter == 1
+        self.class.test_counter = 3 if self.class.test_counter == 2
       end
 
       define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter = 1 if self.class.test_counter == 0
         fail 'Expected behavior'
       end
     end
     expect(clazz.enqueue(1, 1).failed?).to eq(true)
-    expect(clazz.test_counter).to eq(2)
+    expect(clazz.test_counter).to eq(3)
   end
 
-  it 'should success error & after hook' do
+  it 'should run success & after hook' do
     clazz = new_job do
       @test_counter = 0
       singleton_class.class_eval do
@@ -139,19 +197,19 @@ describe Desmond::BaseJob do
       end
 
       define_method(:success) do |job_run, job_id, user_id, options={}|
-        self.class.test_counter = 1 if self.class.test_counter == 0
-      end
-
-      define_method(:after) do |job_run, job_id, user_id, options={}|
         self.class.test_counter = 2 if self.class.test_counter == 1
       end
 
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        self.class.test_counter = 3 if self.class.test_counter == 2
+      end
+
       define_method(:execute) do |job_id, user_id, options={}|
-        done
+        self.class.test_counter = 1 if self.class.test_counter == 0
       end
     end
     expect(clazz.enqueue(1, 1).done?).to eq(true)
-    expect(clazz.test_counter).to eq(2)
+    expect(clazz.test_counter).to eq(3)
   end
 
   it 'should run after hook' do

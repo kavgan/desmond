@@ -101,13 +101,6 @@ module Desmond
     end
 
     ##
-    # detail saved by the job
-    #
-    def details
-      self['details']
-    end
-
-    ##
     # return value of the job
     #
     def result
