@@ -6,6 +6,7 @@
 # keys passed through +keys+ with +censorvalue+.
 #
 def censor_hash_keys(h, keys=[], censorvalue='***censored***')
+  return nil if h.nil?
   keys ||= []
   nh = {}
   h.each do |key, _|
