@@ -100,6 +100,7 @@ module Desmond
       @user_id = user_id
       @symbolized_options = options.deep_symbolize_keys || {}
       @censored_options   = censor_hash_keys(@symbolized_options, CENSORED_KEYS)
+      @error = nil
       @done = nil
 
       # start the logic
@@ -118,8 +119,13 @@ module Desmond
         jr.update(details: { _job_result: @result })
       end
       self.done if @done.nil? # mark as succeded if not done by the job
-      # return result of job for synchronous mode
-      return @result
+      if @done
+        # return result of job for synchronous mode
+        return @result
+      else
+        # when the job marked itself as failed return an exception
+        return JobExecutionError.new(@error)
+      end
     rescue => e
       log_job_event(:error, "Error executing job")
       Que.log level: :error, exception: e.message
@@ -141,6 +147,7 @@ module Desmond
     #
     def failed(error)
       delete_job(false)
+      @error = error
       job_run.update(details: { error: error }) unless @sync
     end
 

@@ -65,6 +65,22 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(1)
   end
 
+  it 'should throw exception on soft failure when using synchronous interface' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter += 1
+        self.failed('Expected behavior')
+      end
+    end
+    expect{ clazz.run(1, 1) }.to raise_error(Desmond::JobExecutionError, 'Expected behavior')
+    expect(clazz.test_counter).to eq(1)
+  end
+
   it 'should throw exception on failure when using synchronous interface' do
     clazz = new_job do
       @test_counter = 0

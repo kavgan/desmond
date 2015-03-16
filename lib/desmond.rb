@@ -8,6 +8,8 @@ require 'active_support/hash_with_indifferent_access'
 require_relative 'desmond/utils/pg_util'
 require_relative 'desmond/utils/log_censor'
 
+require_relative 'desmond/execution_error'
+
 require_relative 'desmond/streams/base'
 require_relative 'desmond/streams/csv'
 require_relative 'desmond/streams/database'
