@@ -307,6 +307,39 @@ describe Desmond::BaseJob do
     end
   end
 
+  it 'should have job result available in hooks' do
+    clazz = new_job do
+      @result_success = 0
+      @result_after = 0
+      singleton_class.class_eval do
+        attr_accessor :result_success, :result_after
+      end
+
+      define_method(:success) do |job_run, job_id, user_id, options={}|
+        self.class.result_success = job_run.result
+      end
+
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        self.class.result_after = job_run.result
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        42
+      end
+    end
+    # testing async mode
+    run = clazz.enqueue(1, 1)
+    expect(run.done?).to eq(true)
+    expect(run.result).to eq(42)
+    expect(clazz.result_success).to eq(run.result)
+    expect(clazz.result_after).to eq(run.result)
+    # testing sync mode
+    result = clazz.run(1, 1)
+    expect(result).to eq(42)
+    expect(clazz.result_success).to eq(result)
+    expect(clazz.result_after).to eq(result)
+  end
+
   it 'should be able to timeout while waiting for completion' do
     self.async do
       clazz = new_job do

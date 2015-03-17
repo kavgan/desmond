@@ -175,7 +175,7 @@ module Desmond
       if self.respond_to?(name.to_sym)
         if @sync
           # create unpersisted fake job run in synchronous mode
-          jr = self.class.create_job_run(@job_id, @user_id, persist: false)
+          jr = self.class.create_job_run(@job_id, @user_id, persist: false, result: @result)
         else
           jr = job_run
         end
@@ -191,14 +191,18 @@ module Desmond
     ##
     # create a job run with the given parameters,
     # returning its id.
+    # if +persist+ is false, the instance is returned.
     #
-    def self.create_job_run(job_id, user_id, persist: true)
+    def self.create_job_run(job_id, user_id, persist: true, result: nil)
       attributes = {
         job_id: job_id,
         job_class: self.name,
         user_id: user_id,
         status: 'queued',
-        queued_at: Time.now
+        queued_at: Time.now,
+        details: {
+          _job_result: result
+        }
       }
       if persist
         e = Desmond::JobRun.create!(attributes)
