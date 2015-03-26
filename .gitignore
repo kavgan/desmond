@@ -37,3 +37,4 @@ build/
 database.yml
 mail.yml
 tests.yml
+log/
