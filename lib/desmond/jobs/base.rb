@@ -72,8 +72,34 @@ module Desmond
     end
 
     ##
+    # job is completed, but failed.
+    # called from within the job, to declare that it failed.
+    #
+    def failed(error)
+      delete_job(false)
+      @error = error
+      job_run.update(details: { error: error }) unless @sync
+    end
+
+    ##
+    # job is completed and succeeded.
+    # called from within the job, to declare that it succeeded.
+    #
+    def done
+      delete_job(true)
+    end
+
+    ##
+    # return the symbolized options the job was run with
+    #
+    def options
+      @symbolized_options
+    end
+
+    ##
     # implements the job & hook logic
     # should be considered internal!
+    # use class methods `run` and `enqueue` to execute the job!
     #
     # The call orders in the different modes of Que are:
     # - `enqueue` in async mode:
@@ -140,29 +166,6 @@ module Desmond
       run_hook(:error) unless @done
       run_hook(:after)
       PGUtil.notify(Desmond::JobRun.connection, "job_run_#{self.run_id}") unless @sync
-    end
-
-    ##
-    # job is completed, but failed.
-    #
-    def failed(error)
-      delete_job(false)
-      @error = error
-      job_run.update(details: { error: error }) unless @sync
-    end
-
-    ##
-    # job is completed and succeeded.
-    #
-    def done
-      delete_job(true)
-    end
-
-    ##
-    # return the symbolized options the job was run with
-    #
-    def options
-      @symbolized_options
     end
 
     private
