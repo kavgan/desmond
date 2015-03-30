@@ -87,7 +87,7 @@ module Desmond
     #   - run: class method
     #   - initialize: instance method
     #   - run: instance method
-    # - `run` always:
+    # - `run` in all modes:
     #   - run: class method
     #   - initialize: instance method
     #   - run: instance method
@@ -110,7 +110,7 @@ module Desmond
       end
       run_hook(:before)
       log_job_event(:info, "Starting to execute job")
-      @result = self.send :execute, job_id, user_id, @symbolized_options if self.respond_to?(:execute)
+      @result = self.send :execute, @job_id, user_id, @symbolized_options if self.respond_to?(:execute)
       # check that we can actually persist the result
       check_result_type(@result)
       unless @sync
@@ -139,7 +139,7 @@ module Desmond
       run_hook(:success) if @done
       run_hook(:error) unless @done
       run_hook(:after)
-      PGUtil.notify(ActiveRecord::Base.connection, "job_run_#{self.run_id}") unless @sync
+      PGUtil.notify(Desmond::JobRun.connection, "job_run_#{self.run_id}") unless @sync
     end
 
     ##
