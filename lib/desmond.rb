@@ -2,7 +2,6 @@ require 'que'
 require 'active_record'
 require 'yaml'
 require 'aws-sdk-v1'
-# not loaded automatically
 require 'active_support/hash_with_indifferent_access'
 
 require_relative 'desmond/utils/pg_util'
