@@ -25,8 +25,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'aws-sdk-v1', '~> 1' # s3 access (v2 is still in preview release)
   s.add_runtime_dependency 'rake', '~> 10.4' # ability to run background processes
 
-  s.add_development_dependency 'rspec'
-  s.add_development_dependency 'simplecov'
-  s.add_development_dependency 'rubocop'
+  s.add_development_dependency 'rspec' # tests
+  s.add_development_dependency 'simplecov' # test code coverage
+  s.add_development_dependency 'rubocop' # code style checks etc
   s.add_development_dependency 'sinatra-activerecord' # ActiveRecord rake tasks
 end
