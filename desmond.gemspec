@@ -1,9 +1,9 @@
 Gem::Specification.new do |s|
   s.name        = 'desmond'
-  s.version     = '0.0.0'
-  s.date        = '2015-01-14'
-  s.summary     = 'CSV Export/Import gem'
-  s.description = 'Exporting and importing a lot of data out of Amazon RedShift'
+  s.version     = '0.1.0'
+  s.date        = '2015-03-31'
+  s.summary     = 'Background tasks & CSV Export/Import'
+  s.description = 'Background tasks & Exporting and importing data out of Amazon AWS RedShift'
   s.authors     = ['Tobias Thiel']
   s.email       = 'tobi@amg.tv'
   s.files       = [

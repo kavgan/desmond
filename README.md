@@ -1,6 +1,6 @@
 desmond
 =========
-Reusable background job functionalety. Building on top of that:
+Reusable background job functionality. Building on top of that:
 Importing/exporting functionality for the RedShift data warehouse.
 
 
