@@ -33,6 +33,7 @@ module Desmond
     # returns a JobRun instance
     #
     def self.enqueue(job_id, user_id, options={})
+      job_id, user_id, options = argument_validation(job_id, user_id, options)
       job_run_id = create_job_run(job_id, user_id)
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job.
@@ -50,6 +51,7 @@ module Desmond
     # returns the return value of the job's execute method
     #
     def self.run(job_id, user_id, options={})
+      job_id, user_id, options = argument_validation(job_id, user_id, options)
       # self.enqueue will call this function in sync mode, so if the job run was already created, don't do it again
       job_run_id = options[:_run_id]
       called_by_enqueue = true # enqueue can call us, in which case the behavior of this method will be slightly different
@@ -264,6 +266,16 @@ module Desmond
       job_args = self.attrs[:args]
       msg = "#{prefix_str} #{self.class.name} with (#{job_args[0, job_args.size - 1].join(', ')}, ...)"
       Que.log level: level, msg: msg, options: @censored_options
+    end
+
+    ##
+    # validates arguments given from public api of `run` and `enqueue` class methods
+    #
+    def self.argument_validation(job_id, user_id, options={})
+      fail(ArgumentError, 'job_id can\'t be nil') if job_id.nil?
+      fail(ArgumentError, 'user_id can\'t be nil') if user_id.nil?
+      fail(ArgumentError, 'options needs to be a hash or convertable to one') if options.nil? || !options.respond_to?(:to_hash)
+      return job_id, user_id, options.to_hash
     end
   end
 end
