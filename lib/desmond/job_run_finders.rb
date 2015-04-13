@@ -21,6 +21,15 @@ module Desmond
       end
 
       ##
+      # returns the last finished run for the given +job_id+.
+      # optionally filter by +user_id+.
+      # returns nil if none available.
+      #
+      def last_finished_run(job_id, user_id=nil)
+        job_runs(job_id, user_id, JobRun::STATUSES_COMPLETED).order(queued_at: :desc).take(1).first
+      end
+
+      ##
       # get the last +n+ runs for the given +job_id+.
       # optionally filter by +user_id+.
       # returns an array of the found runs, which is empty if none are available
@@ -34,7 +43,7 @@ module Desmond
       # optionally filter by +user_id+.
       #
       def runs_unfinished(job_id, user_id=nil)
-        job_runs(job_id, user_id, [JobRun::STATUS_QUEUED, JobRun::STATUS_RUNNING])
+        job_runs(job_id, user_id, JobRun::STATUSES_INPROGRESS)
       end
 
       private

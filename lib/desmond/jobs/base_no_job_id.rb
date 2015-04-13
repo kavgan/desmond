@@ -51,6 +51,13 @@ module Desmond
     end
 
     ##
+    # see `Desmond::JobRunFinders.last_finished_run`
+    #
+    def self.last_finished_run(user_id=nil)
+      super(self.default_job_id, user_id)
+    end
+
+    ##
     # see `Desmond::JobRunFinders.last_runs`
     #
     def self.last_runs(n, user_id=nil)

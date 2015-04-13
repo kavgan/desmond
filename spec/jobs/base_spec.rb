@@ -1,35 +1,7 @@
 require_relative '../spec_helper'
 
 describe Desmond::BaseJob do
-  def new_job(&block)
-    clazz_name = "DemondTestJob#{rand(4096)}"
-    clazz = Class.new(Desmond::BaseJob) do
-      define_method(:name) do
-        clazz_name
-      end
-
-      self.instance_eval &block unless block.nil?
-    end
-    # create a global name for it, so we can run it async (worker needs to be able to find the class by name)
-    Object.const_set(clazz_name, clazz)
-    clazz
-  end
-
-  # changes working mode to async for async tests, use `async_worker` to run jobs
-  def async
-    prev_mode = Que.mode
-    Que.mode = :off
-    yield
-  ensure
-    Que.mode = prev_mode
-  end
-
-  # works on one job in the que in a separate thread
-  def async_worker
-    Thread.new do
-      Que::Job.work
-    end
-  end
+  include JobTestHelpers
 
   it 'should run minimal job successfully' do
     expect(new_job.enqueue(1, 1).done?).to eq(true)
@@ -380,44 +352,5 @@ describe Desmond::BaseJob do
     expect(clazz.options_before).to eq(options_expected)
     expect(clazz.options_execute).to eq(options_expected)
     expect(clazz.options_after).to eq(options_expected)
-  end
-
-  it 'should be able to find the last run' do
-    clazz = new_job do
-      define_method(:execute) do |job_id, user_id, options={}|
-        42
-      end
-    end
-    expect(clazz.enqueue(1, 1).done?).to eq(true)
-    expect(clazz.last_run(1).result).to eq(42)
-    expect(clazz.last_run(1, 1).result).to eq(42)
-  end
-
-  it 'should be able to find multiple last runs' do
-    clazz = new_job
-    expect(clazz.last_runs(1, 2).size).to eq(0)
-    expect(clazz.enqueue(1, 1).done?).to eq(true)
-    expect(clazz.last_runs(1, 2).size).to eq(1)
-    expect(clazz.enqueue(1, 2).done?).to eq(true)
-    expect(clazz.last_runs(1, 2).size).to eq(2)
-    expect(clazz.last_runs(1, 2, 1).size).to eq(1)
-    expect(clazz.last_runs(1, 2, 2).size).to eq(1)
-  end
-
-  it 'should be able to find unfinished runs' do
-    clazz = new_job
-    expect(clazz.runs_unfinished(1).size).to eq(0)
-    self.async do
-      run = clazz.enqueue(1, 1)
-      expect(clazz.runs_unfinished(1).size).to eq(1)
-      expect(clazz.runs_unfinished(1, 1).size).to eq(1)
-      expect(clazz.runs_unfinished(1, 2).size).to eq(0)
-      self.async_worker
-      run.wait_until_finished
-      expect(run.finished?).to eq(true)
-    end
-    expect(clazz.runs_unfinished(1).size).to eq(0)
-    expect(clazz.runs_unfinished(1, 1).size).to eq(0)
-    expect(clazz.runs_unfinished(1, 2).size).to eq(0)
   end
 end

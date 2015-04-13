@@ -8,6 +8,9 @@ module Desmond
     STATUS_SUCCESS = 'done'
     STATUS_FAILURE = 'failed'
 
+    STATUSES_INPROGRESS = [STATUS_QUEUED, STATUS_RUNNING]
+    STATUSES_COMPLETED = [STATUS_SUCCESS, STATUS_FAILURE]
+
     self.table_name = :desmond_job_runs
     # id                     :integer          not null, primary key
     # job_id                 :string           not null
