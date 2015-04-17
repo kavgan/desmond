@@ -44,6 +44,13 @@ module Desmond
     end
 
     ##
+    # see `Desmond::BaseJob.run_persisted`
+    #
+    def self.run_persisted(user_id, options={})
+      super(self.default_job_id, user_id, options)
+    end
+
+    ##
     # see `Desmond::JobRunFinders.last_run`
     #
     def self.last_run(user_id=nil)
