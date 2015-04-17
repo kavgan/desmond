@@ -353,4 +353,21 @@ describe Desmond::BaseJob do
     expect(clazz.options_execute).to eq(options_expected)
     expect(clazz.options_after).to eq(options_expected)
   end
+
+  it 'should have synchronous persistent interface' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+
+      define_method(:execute) do |job_id, user_id, options={}|
+        self.class.test_counter += 1
+        42
+      end
+    end
+    expect(clazz.run_persisted(1, 1)).to eq(42)
+    expect(clazz.test_counter).to eq(1)
+    expect(clazz.last_run(1, 1).result).to eq(42)
+  end
 end

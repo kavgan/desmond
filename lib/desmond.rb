@@ -4,6 +4,7 @@ require 'yaml'
 require 'aws-sdk-v1'
 require 'active_support/hash_with_indifferent_access'
 
+require_relative 'desmond/monkey_patches'
 require_relative 'desmond/utils/pg_util'
 require_relative 'desmond/utils/log_censor'
 

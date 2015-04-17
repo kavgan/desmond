@@ -1,46 +1,90 @@
 require_relative '../../desmond'
 require 'csv'
 
+#
+# every csv streams supports these options identical to Ruby's CSV implementation:
+# - col_sep
+# - row_sep
+# - quote_char
+# - force_quotes, only really useful with writers
+# - skip_blanks, only really useful with readers
+# slightly different implementation:
+# - headers, support false, first_row or array
+# - return_headers, is a writer option only
+# added options:
+# - skip_rows, reader only, integer of top rows to skip, defaults to 0,
+#              in case you want to override a header row with your own headers
+#
+
 module Desmond
   module Streams
     module CSV
-      ##
-      # abstract base class for csv streams
-      #
-      class CSVStream < Streams::Reader
+      module CSVStreamBaseMethods
         ##
         # returns the column headers
         #
         def headers
           @options[:headers] || []
         end
+
+        ##
+        # alias for `headers`
+        #
+        def columns
+          self.headers
+        end
+
+        def get_csv_options(options={})
+          options = self.default_csv_options.merge(self.whitelisted_csv_options(options))
+          options[:force_quotes] = !!options[:force_quotes]
+          options[:skip_blanks] = !!options[:skip_blanks]
+          options[:headers] = options[:headers].to_sym if options[:headers].respond_to?(:to_sym)
+          options[:return_headers] = !!options[:return_headers]
+          options[:skip_rows] = options[:skip_rows].to_i if options[:skip_rows].respond_to?(:to_i)
+          options
+        end
+
+        def default_csv_options
+          {
+            col_sep: ',',
+            row_sep: "\n",
+            quote_char: '"',
+            force_quotes: false,
+            skip_blanks: false,
+            headers: false,
+            return_headers: false,
+            skip_rows: 0
+          }
+        end
+
+        def whitelisted_csv_options(options={})
+          options.symbolize_keys.select do |key, _|
+            (key == :col_sep || key == :row_sep || key == :quote_char || key == :force_quotes ||
+              key == :skip_blanks || key == :headers || key == :return_headers || key == :skip_rows)
+          end
+        end
       end
 
       ##
-      # parsing arrays out of an io object reading a csv.
+      # expects supplied +reader+ to return a csv string.
+      # this is parsed into arrays and returned by this class.
       #
-      class CSVArrayReader < CSVStream
+      class CSVArrayReader < Streams::Reader
+        include CSVStreamBaseMethods
+
+        ROW_SEPS = ["\r\n", "\n", "\r"]
         COL_SEPS = [',', '|', "\t", ';']
-        QUOTE_CHARS = ['\'', '"']
+        QUOTE_CHARS = ['"', '\'']
 
         ##
-        # valid +options+ are (see ruby's CSV class):
-        # - col_sep
-        # - row_sep
-        # - headers
-        # - return_headers
-        # - quote_char
-        # - skip_header_row (not available in ruby's CSV)
+        # expects a string +reader+ and +options+ as described above
         #
         def initialize(reader, options={})
           super()
-          @options = options.symbolize_keys
-          @skip_header_row = !!@options.delete(:skip_header_row)
-          @first_row_headers = false
-          if @options[:headers] == :first_row || @options[:headers] == 'first_row' || @skip_header_row
-            @first_row_headers = true
-            @options[:headers] = nil unless @skip_header_row
-          end
+          @options = self.get_csv_options(options)
+          @skip_rows = @options.delete(:skip_rows)
+          @headers = @options.delete(:headers)
+          @options.delete(:return_headers) # not supported by reader anyways
           @reader = Streams::LineReader.new(reader, newline: options[:row_sep])
           @buff = nil
         end
@@ -49,7 +93,7 @@ module Desmond
         # returns the column headers
         #
         def headers
-          @buff = self.read if @first_row_headers
+          @buff = self.read if @headers == :first_row
           super()
         end
 
@@ -66,11 +110,15 @@ module Desmond
           # read further
           tmp = @reader.read
           return nil if tmp.nil?
+          # skip rows if requested
+          if @skip_rows > 0
+            @skip_rows -= 1
+            return self.read
+          end
           tmp = ::CSV.parse_line(tmp, @options)
-          # if the first row contains headers parse them
-          if @first_row_headers
-            @first_row_headers = false
-            @options[:headers] = tmp unless @skip_header_row
+          # if the haven't parsed first_row headers yet, do it now
+          if @headers == :first_row
+            @headers = @options[:headers] = tmp
             return self.read
           end
           # always return an array of columns
@@ -96,29 +144,13 @@ module Desmond
         # guesses row_sep, col_sep and quote_char.
         # returns hash
         #
-        def self.guess_separators(reader)
+        def self.guess_separators(reader, guess_lines=100)
           # read 100 lines for guessing
-          content = (0..100).map { reader.read }.join('')
-          row_sep = "\n" # safe bet for now :)
-          # guess col_sep
-          max_count = 0
-          col_sep = nil
-          COL_SEPS.each do |cs|
-            count = content.count cs
-            if count > max_count
-              max_count = count
-              col_sep = cs
-            end
-          end
-          # guess quote_char
-          max_count = 0
-          quote_char = '"'
-          QUOTE_CHARS.each do |qs|
-            count = content.scan("#{col_sep}#{qs}").count + content.scan("#{qs}#{col_sep}").count
-            if count > max_count
-              max_count = count
-              quote_char = qs
-            end
+          content = (0..guess_lines).map { reader.read }.join('')
+          row_sep = content.max_substr_count(ROW_SEPS)
+          col_sep = content.max_substr_count(COL_SEPS)
+          quote_char = content.max_substr_count(QUOTE_CHARS) do |content, qc|
+            content.scan("#{col_sep}#{qc}").size + content.scan("#{qc}#{col_sep}").size
           end
           { row_sep: row_sep, col_sep: col_sep, quote_char: quote_char }
         end
@@ -129,7 +161,8 @@ module Desmond
         # by supplying custom options.
         #
         def self.guess_and_create(reader, options={})
-          options = self.guess_separators(reader).merge(options)
+          guess_lines = options.delete(:guess_lines) || 100
+          options = self.guess_separators(reader, guess_lines).merge(options)
           reader.rewind
           self.new(reader, options)
         end
@@ -141,28 +174,21 @@ module Desmond
       # reads rows from a +reader+ expecting to retrieve
       # arrays of arrays, representing the rows containing the columns
       #
-      class CSVStringReader < CSVStream
+      class CSVStringWriter < Streams::Writer
+        include CSVStreamBaseMethods
         ##
-        # valid +options+ are (see ruby's CSV class):
-        # - col_sep
-        # - row_sep
-        # - headers
-        # - return_headers
-        # - quote_char
+        # expects a +reader+ returning arrays of columns or
+        # two-dimensional arrays containing rows and then columns.
+        # +options+ should be as described above.
         #
         def initialize(reader, options={})
           super()
           @reader = reader
-          columns = reader.columns if reader.respond_to?(:columns)
-          @options = {
-            col_sep: ',',
-            row_sep: "\n",
-            headers: columns,
-            return_headers: false
-          }.merge((options || {}).symbolize_keys.select do |key, _|
-            key == :col_sep || key == :row_sep || key == :headers || key == :return_headers || key == :quote_char
-          end)
-          @read_headers = false
+          @options = self.get_csv_options(options)
+          @options.delete(:skip_rows) # not supported by writer anyways
+          fail ArgumentError, 'headers cannot be first_row for this writer' if @options[:headers] == :first_row
+          @options[:headers] = reader.headers if !options[:headers] && reader.respond_to?(:headers)
+          @options[:headers] = reader.columns if !options[:headers] && reader.respond_to?(:columns)
         end
 
         ##
@@ -173,16 +199,24 @@ module Desmond
         def read
           tmp = nil
           # check if we need to read a header line
-          if @options[:return_headers] && !@read_headers
-            @read_headers = true
+          if @options[:return_headers] && @options[:headers]
+            @options[:return_headers] = false
             tmp = ::CSV.generate_line(@options[:headers], @options)
           end
 
           # read rows from supplied reader
           if tmp.nil?
             tmp = ::CSV.generate(@options) do |csv|
-              @reader.read.map do |row|
-                csv << row
+              tmp = @reader.read
+              # did we get an array of rows or just one row?
+              if tmp.size > 0 && tmp[0].is_a?(Enumerable)
+                tmp.map do |row|
+                  csv << row
+                end
+              elsif tmp.size > 0
+                csv << tmp
+              else
+                return nil
               end
             end
           end

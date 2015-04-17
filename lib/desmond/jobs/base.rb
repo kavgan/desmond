@@ -56,7 +56,7 @@ module Desmond
       job_run_id = options[:_run_id]
       called_by_enqueue = true # enqueue can call us, in which case the behavior of this method will be slightly different
       called_by_enqueue = false if job_run_id.nil? # not already create by `enqueue`
-      # we are not gonna create a job run for synchronous executions
+      # we are not gonna create a job run for synchronous executions by default
 
       # actually run the job
       result = super(job_id, user_id, options)
@@ -71,6 +71,16 @@ module Desmond
         # as this will not happen in async mode
         fail result unless called_by_enqueue # only raise exception if not called by 'enqueue'
       end
+    end
+
+    ##
+    # same as `run`, but persists a job run in the background.
+    # use if you wish to get execution details afterwards.
+    #
+    def self.run_persisted(job_id, user_id, options={})
+      job_id, user_id, options = argument_validation(job_id, user_id, options)
+      job_run_id = create_job_run(job_id, user_id)
+      return self.run(job_id, user_id, options.merge(_run_id: job_run_id))
     end
 
     ##

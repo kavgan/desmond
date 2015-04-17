@@ -43,5 +43,12 @@ describe Desmond::Streams::CSV::CSVArrayReader do
     expect(guess_separators("a,b\nc,d\ne,f")[:quote_char]).to eq('"')
     expect(guess_separators("'a',b\nc,'d'\ne,f")[:quote_char]).to eq("'")
     expect(guess_separators("a,b\nc,d\ne,\"f\"")[:quote_char]).to eq("\"")
+    expect(guess_separators("a,b\nc,'d\ne,\"f\"")[:quote_char]).to eq("\"")
+  end
+
+  it 'should guess row_sep correctly' do
+    expect(guess_separators("a,b\nc,d\ne,f")[:row_sep]).to eq("\n")
+    expect(guess_separators("a,b\r\nc,d\r\ne,f")[:row_sep]).to eq("\r\n")
+    expect(guess_separators("a,b\rc,d\re,f")[:row_sep]).to eq("\r")
   end
 end

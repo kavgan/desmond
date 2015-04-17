@@ -36,7 +36,7 @@ describe Desmond::ExportJob do
   #
   def run_export_and_return_string(options={})
     run = run_export(options.merge(donotdelete: true))
-    return nil if run.failed?
+    fail run.error if run.failed?
     s3_obj = nil
     csv = nil
     begin

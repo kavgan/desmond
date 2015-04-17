@@ -56,10 +56,12 @@ module Desmond
             @buff = nil
             return tmp
           end
+
           tmp = self.execute(@fetchq).map do |h|
             @keys = h.keys
             h.values
           end.to_a
+
           @eof = true if tmp.empty?
           yield(tmp) if block_given?
           tmp
@@ -74,7 +76,7 @@ module Desmond
         end
 
         ##
-        # creates an instance of Streams::CSV:CSVStringReader wrapped around this class,
+        # creates an instance of Streams::CSV:CSVStringWriter wrapped around this class,
         # letting you read csv from the database
         #
         # the 'db' key of +options+ is passed to the Postgres database reader.
@@ -82,7 +84,7 @@ module Desmond
         # for supported and required options.
         #
         def self.create_csv_reader(name, query, options={})
-          Streams::CSV::CSVStringReader.new(self.new(name, query, options[:db]), options[:csv])
+          Streams::CSV::CSVStringWriter.new(self.new(name, query, options[:db]), options[:csv])
         end
 
         protected
