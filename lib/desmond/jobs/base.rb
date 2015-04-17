@@ -164,7 +164,7 @@ module Desmond
         # when the job marked itself as failed return an exception
         return JobExecutionError.new(@error)
       end
-    rescue => e
+    rescue Exception => e
       log_job_event(:error, "Error executing job")
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
