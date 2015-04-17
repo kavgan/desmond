@@ -87,10 +87,10 @@ module Desmond
     # job is completed, but failed.
     # called from within the job, to declare that it failed.
     #
-    def failed(error)
+    def failed(error, additional={})
       delete_job(false)
       @error = error
-      job_run.update(details: { error: error }) unless @sync
+      job_run.update(details: { error: error }.merge(job_run.details).merge(additional)) unless @sync
     end
 
     ##
@@ -166,10 +166,10 @@ module Desmond
       end
     rescue Exception => e
       log_job_event(:error, "Error executing job")
-      Que.log level: :error, exception: e.message
+      Que.log level: :error, type: e.class, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       # requery job_run (might have been changed by execute) and save error message
-      self.failed(e.message)
+      failed_exception(e)
       return e # return the exception for synchronous mode
     ensure
       log_job_event(:info, "Finished executing job")
@@ -181,6 +181,13 @@ module Desmond
     end
 
     private
+
+    ##
+    # failed with an exception
+    #
+    def failed_exception(exception)
+      self.failed(exception.message, error_type: exception.class.name)
+    end
 
     ##
     # runs the hook with the given +name+
