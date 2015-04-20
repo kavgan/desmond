@@ -29,6 +29,7 @@ require_relative 'desmond/models/job_run'
 class DesmondConfig
   @is_daemon = false
   @logger = Logger.new(STDOUT)
+  @exception_notifier = []
   class << self
     attr_accessor :logger
     attr_reader :is_daemon
@@ -64,6 +65,28 @@ class DesmondConfig
   def self.app_id
     config['app_id'] || 'desmond'
   end
+
+  ##
+  # adds the given argument to the list of block to be called when
+  # an uncaught exception occurs during job execution
+  #
+  # blocks will be called with the arguments (exception, job_class, job_run)
+  #
+  def self.add_exception_notifier(&block)
+    @exception_notifier << block
+  end
+  def self.clear_exception_notifier
+    @exception_notifier = []
+  end
+  def self.register_with_exception_notifier(options={})
+    options.each do |notifier_name, options|
+      ExceptionNotifier.register_exception_notifier(notifier_name, options)
+    end
+    DesmondConfig.add_exception_notifier do |exception, job_class, job_run|
+      ExceptionNotifier.notify_exception(exception, :data => { :class => job_class, run: job_run })
+    end
+  end
+
   ##
   # change 'app_id' to +value+
   # only use this in the 'test' environment otherwise the change
@@ -110,6 +133,13 @@ class DesmondConfig
     @is_daemon = true
   end
   private_class_method :set_daemon
+
+  def self.exception_notification(exception, job_class, job_run)
+    @exception_notifier.each do |thing|
+      thing.call(exception, job_class, job_run) rescue nil
+    end
+  end
+  private_class_method :exception_notification
 end
 
 # configure ActiveRecord, but the app using us should really do this,

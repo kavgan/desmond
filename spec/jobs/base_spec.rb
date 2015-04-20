@@ -370,4 +370,28 @@ describe Desmond::BaseJob do
     expect(clazz.test_counter).to eq(1)
     expect(clazz.last_run(1, 1).result).to eq(42)
   end
+
+  it 'should support error notifications' do
+    clazz = new_job do
+      define_method(:execute) do |job_id, user_id, options={}|
+        fail 'expected main'
+      end
+    end
+    clazz2 = new_job do
+      define_method(:before) do |job_run, job_id, user_id, options={}|
+        fail 'expected before'
+      end
+    end
+    begin
+      called = nil
+      DesmondConfig.add_exception_notifier { |e, c, r| called = e }
+      expect(clazz.enqueue(1, 1).failed?).to eq(true)
+      expect(called.message).to eq('expected main')
+      called = nil
+      expect(clazz2.enqueue(1, 1).failed?).to eq(false)
+      expect(called.message).to eq('expected before')
+    ensure
+      DesmondConfig.clear_exception_notifier
+    end
+  end
 end

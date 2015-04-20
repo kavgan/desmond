@@ -168,8 +168,9 @@ module Desmond
       log_job_event(:error, "Error executing job")
       Que.log level: :error, type: e.class, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
-      # requery job_run (might have been changed by execute) and save error message
+      # save error
       failed_exception(e)
+      DesmondConfig.send(:exception_notification, e, self.class, job_run)
       return e # return the exception for synchronous mode
     ensure
       log_job_event(:info, "Finished executing job")
@@ -195,12 +196,7 @@ module Desmond
     #
     def run_hook(name)
       if self.respond_to?(name.to_sym)
-        if @sync
-          # create unpersisted fake job run in synchronous mode
-          jr = self.class.create_job_run(@job_id, @user_id, persist: false, result: @result)
-        else
-          jr = job_run
-        end
+        jr = job_run
         # actually call hook method
         self.send name.to_sym, jr, @job_id, @user_id, @symbolized_options
       end
@@ -208,6 +204,7 @@ module Desmond
       log_job_event(:error, "Error executing hook '#{name}' for job")
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
+      DesmondConfig.send(:exception_notification, e, self.class, jr)
     end
 
     ##
@@ -238,7 +235,11 @@ module Desmond
     # returns the JobRun for this instance of the job
     #
     def job_run
-      Desmond::JobRun.find(self.run_id)
+      if @sync
+        self.class.create_job_run(@job_id, @user_id, persist: false, result: @result)
+      else
+        Desmond::JobRun.find(self.run_id)
+      end
     end
 
     ##
