@@ -170,7 +170,8 @@ module Desmond
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       # save error
       failed_exception(e)
-      DesmondConfig.send(:exception_notification, e, self.class, job_run)
+      # in sync mode we'll raise the error to the caller, so we won't notify subscribers
+      DesmondConfig.send(:exception_notification, e, self.class, job_run) unless @sync
       return e # return the exception for synchronous mode
     ensure
       log_job_event(:info, "Finished executing job")
