@@ -128,7 +128,8 @@ module Desmond
         private
 
         def recreate
-          fail 'S3 object already exists' if @aws.buckets[@bucket].objects[@key].exists?
+          # we are going to overwrite existing files
+          #fail "S3 object already exists: '#{@bucket}': '#{@key}'" if @aws.buckets[@bucket].objects[@key].exists?
           o = @aws.buckets[@bucket].objects.create(@key, '')
           # no other way to stream to S3 unfortunately ...
           reader, writer = IO.pipe
