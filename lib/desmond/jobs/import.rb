@@ -115,34 +115,30 @@ module Desmond
         CSV
         QUOTE '#{csv_quote_char}'
         DELIMITER '#{csv_col_sep}'
-        #{(skip_first_row) ? ' IGNOREHEADER 1' : ''}
+        #{(skip_rows) ? " IGNOREHEADER #{skip_rows}" : ''}
         ;
       SQL
       conn.exec(copy_sql)
     end
 
-    def import_general(conn, table_name, array_reader, s3_reader, options={})
+    def import_general(conn, raw_table_name, table_name, array_reader, s3_reader, options={})
+      statement_name = "desmond_#{raw_table_name}"
+      placeholders = []
+      i = 1
       insert_columns = array_reader.headers.map do |header|
+        placeholders << "$#{i.to_i}"
+        i += 1
         PGUtil.escape_identifier(header)
       end.join(', ')
+      placeholders = placeholders.join(', ')
+      conn.prepare(statement_name, "insert into #{table_name} (#{insert_columns}) values (#{placeholders})")
       while !array_reader.eof?
         row = array_reader.read
-        insert_sql  = "INSERT INTO #{table_name} ("
-        insert_sql += insert_columns
-        insert_sql += ') VALUES('
-        insert_sql += row.map { |column| "'" + PGUtil.escape_string(column) + "'" } .join(', ')
-        insert_sql += ');'
-        conn.exec(insert_sql)
+        conn.exec_prepared(statement_name, row)
       end
-    end
-
-    def self.get_database_adapter(options)
-      fail 'No database options!' if options[:db].nil?
-      config_name = options[:db][:connection_id]
-      fail 'No connection id!' if config_name.nil? || config_name.empty?
-      conf = ActiveRecord::Base.configurations[config_name.to_s]
-      fail "Connection configuration '#{config_name.to_s}' not found" if conf.nil? || conf.empty?
-      conf['adapter']
+    ensure
+      # we don't need the prepared statement anymore
+      conn.exec("deallocate #{statement_name}")
     end
   end
 end
