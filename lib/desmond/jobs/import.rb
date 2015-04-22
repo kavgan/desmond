@@ -48,19 +48,11 @@ module Desmond
       bucket = PGUtil.escape_string(options[:s3][:bucket])
       s3_key = PGUtil.escape_string(options[:s3][:key])
 
-      # redshift supports schemas, postgres doesn't
+      # retrieve escaped table name
       schema_name = options[:db][:schema] || ''
-      schema_name = PGUtil.escape_identifier(schema_name) unless schema_name.empty?
-      schema_name = '' if self.class.get_database_adapter(options) != 'redshift'
-
-      # retrieve table name
       table_name = options[:db][:table]
       fail 'Empty table name!' if table_name.nil? || table_name.empty?
-      table_name = PGUtil.escape_identifier(table_name)
-
-      # construct full escaped table name
-      full_table_name = "#{schema_name}.#{table_name}" unless schema_name.empty?
-      full_table_name = table_name if schema_name.empty?
+      full_table_name = PGUtil.get_escaped_table_name(options[:db], schema_name, table_name)
 
       # connect to database
       conn = PGUtil.dedicated_connection(options[:db])
@@ -90,9 +82,9 @@ module Desmond
         conn.exec(create_table_sql)
 
         # actually start inserting
-        adapter = self.class.get_database_adapter(options)
+        adapter = PGUtil.get_database_adapter(options[:db])
         if adapter == 'postgresql'
-          import_general(conn, full_table_name, r, s, options)
+          import_general(conn, table_name, full_table_name, r, s, options)
         elsif adapter == 'redshift'
           import_redshift(conn, full_table_name, r, s, options)
         else

@@ -21,16 +21,16 @@ module Desmond
       password = options[:password]
       fail 'No connection id!' if ar_config.nil? || ar_config.empty?
       conf = ActiveRecord::Base.configurations[ar_config.to_s]
-      fail "Connection configuration '#{ar_config.to_s}' not found" if conf.nil? || conf.empty?
+      fail ArgumentError, "Connection configuration '#{ar_config.to_s}' not found" if conf.nil? || conf.empty?
       if !DesmondConfig.system_connection_allowed? && !options[:system_connection_allowed]
-        fail 'No db connection username!' if username.nil? || username.empty?
-        fail 'No db connection password!' if password.nil? || password.empty?
+        fail ArgumentError, 'No db connection username!' if username.nil? || username.empty?
+        fail ArgumentError, 'No db connection password!' if password.nil? || password.empty?
       else
         username ||= conf['username']
         password ||= conf['password']
       end
       # construct connection config with the provided credentials
-      fail "Connection configuration '#{ar_config}' not found" if conf.nil?
+      fail ArgumentError, "Connection configuration '#{ar_config}' not found" if conf.nil?
       PG.connect(
         host: conf['host'],
         port: conf['port'],
@@ -83,6 +83,51 @@ module Desmond
     end
 
     ##
+    # returns the database adapter used with the given database +options+
+    #
+    def self.get_database_adapter(options)
+      config_name = options[:connection_id]
+      fail 'No connection id!' if config_name.nil? || config_name.empty?
+      conf = ActiveRecord::Base.configurations[config_name.to_s]
+      fail "Connection configuration '#{config_name.to_s}' not found" if conf.nil? || conf.empty?
+      conf['adapter']
+    end
+
+    ##
+    # returns an escaped version of the given table name
+    # dependent on the database adapter used.
+    # - pg doesn't have schema's etc
+    #
+    def self.get_escaped_table_name(db_options, schema_name, table_name)
+      adapter = self.get_database_adapter(db_options)
+      if adapter == 'postgresql'
+        get_escaped_table_name_pg(table_name)
+      elsif adapter == 'redshift'
+        get_escaped_table_name_rs(schema_name, table_name)
+      else
+        fail ArgumentError, "Unknown database adapter '#{adapter}'"
+      end
+    end
+
+    ##
+    # returns an escaped table name for a postgresql database
+    #
+    def self.get_escaped_table_name_pg(table_name)
+      Desmond::PGUtil.escape_identifier(table_name)
+    end
+    private_class_method :get_escaped_table_name_pg
+
+    ##
+    # returns an escaped table name for a redshift database
+    #
+    def self.get_escaped_table_name_rs(schema_name, table_name)
+      schema_name = Desmond::PGUtil.escape_identifier(schema_name)
+      table_name  = Desmond::PGUtil.escape_identifier(table_name)
+      "#{schema_name}.#{table_name}"
+    end
+    private_class_method :get_escaped_table_name_rs
+
+    ##
     # extracts PG::Connection out of ActiveRecord +connection+,
     # or returns straigt if already a PG::Connection.
     # raises exception otherwise.
@@ -93,7 +138,7 @@ module Desmond
       elsif connection.is_a?(PG::Connection)
         connection
       else
-        fail 'Unsupported connection!'
+        fail ArgumentError, 'Unsupported connection!'
       end
     end
     private_class_method :get_pg_connection
