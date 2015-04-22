@@ -24,7 +24,7 @@ module Desmond
         # returns the column headers
         #
         def headers
-          @options[:headers] || []
+          @headers || []
         end
 
         ##

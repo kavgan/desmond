@@ -117,7 +117,7 @@ module Desmond
         end
 
         def close
-          super()
+          super() unless @conn.transaction_status == PG::Constants::PQTRANS_INERROR # transaction aborted, no need to close cursor
           @conn.close
         end
 
