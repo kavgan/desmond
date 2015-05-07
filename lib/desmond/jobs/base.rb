@@ -10,6 +10,9 @@ module Que
 end
 
 module Desmond
+  class WaitTimeoutReached < StandardError
+  end
+
   ##
   # base class for queueable jobs.
   # implement 'execute' instance method in subclasses to specify behavior.
@@ -41,6 +44,28 @@ module Desmond
       super(job_id, user_id, options.merge(_run_id: job_run_id, _enqueue: true))
       # requery from database, since it was already updated in sync mode
       Desmond::JobRun.find(job_run_id)
+    end
+
+    ##
+    # queue this job for execution, but wait at least +timeout+ seconds for it to finish
+    #
+    # see instance method `enqueue` for parameter documentation
+    #
+    # raises `WaitTimeoutReached` if job is not done after timeout
+    # returns the return value of the job's execute method
+    #
+    def enqueue_and_wait(job_id, user_id, timeout=nil, options={})
+      fail ArgumentError, "timeout argument needs to be numeric, is '#{timeout}'" unless timeout.nil? || timeout.is_a?(Numeric)
+      run = self.enqueue(job_id, user_id, options)
+      completed = !run.wait_until_finished(timeout).nil?
+      unless completed
+        fail WaitTimeoutReached.new("Timeout reached while waiting for #{self.name}")
+      end
+      if run.done?
+        return run.result
+      else
+        fail run.error
+      end
     end
 
     ##
