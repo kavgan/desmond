@@ -371,6 +371,15 @@ describe Desmond::BaseJob do
     expect(clazz.last_run(1, 1).result).to eq(42)
   end
 
+  it 'should have synchronous persistent interface throwing exceptions' do
+    clazz = new_job do
+      define_method(:execute) do |job_id, user_id, options={}|
+        fail 'Expected'
+      end
+    end
+    expect { clazz.run_persisted(1, 1) }.to raise_error('Expected')
+  end
+
   it 'should support error notifications' do
     clazz = new_job do
       define_method(:execute) do |job_id, user_id, options={}|

@@ -38,7 +38,7 @@ module Desmond
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job.
       # the async option differentiates between enqueue in sync mode mode and self.run in sync mode
-      super(job_id, user_id, options.merge(_run_id: job_run_id))
+      super(job_id, user_id, options.merge(_run_id: job_run_id, _enqueue: true))
       # requery from database, since it was already updated in sync mode
       Desmond::JobRun.find(job_run_id)
     end
@@ -54,8 +54,7 @@ module Desmond
       job_id, user_id, options = argument_validation(job_id, user_id, options)
       # self.enqueue will call this function in sync mode, so if the job run was already created, don't do it again
       job_run_id = options[:_run_id]
-      called_by_enqueue = true # enqueue can call us, in which case the behavior of this method will be slightly different
-      called_by_enqueue = false if job_run_id.nil? # not already create by `enqueue`
+      called_by_enqueue = options.delete(:_enqueue) # enqueue can call us, in which case the behavior of this method will be slightly different
       # we are not gonna create a job run for synchronous executions by default
 
       # actually run the job
