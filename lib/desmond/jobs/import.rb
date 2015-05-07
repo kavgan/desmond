@@ -6,6 +6,7 @@ module Desmond
   # any job using its general interface.
   #
   class ImportJob < BaseJob
+    SAFE_ROW_SEP = "\n"
     ##
     # runs an import
     # see `BaseJob` for information on arguments except +options+.
@@ -102,14 +103,27 @@ module Desmond
     private
 
     def import_redshift(conn, table_name, array_reader, s3_reader, options={})
+      s3_bucket = s3_reader.bucket
+      s3_key    = s3_reader.key
+      if array_reader.options[:row_sep] != SAFE_ROW_SEP
+        csv_options = array_reader.options
+        skip_rows = options.fetch(:csv, {})[:skip_rows]
+        hdrs      = options.fetch(:csv, {})[:headers]
+        if (!skip_rows.nil? && skip_rows > 0) || (!hdrs.nil? && hdrs == :first_row)
+          csv_options = csv_options.merge(return_headers: true)
+        end
+        s3_key = rewrite_weird_newlines(s3_bucket, s3_key, array_reader,
+          s3: options[:s3], csv: csv_options)
+      end
       copy_columns = array_reader.headers.map { |header| PGUtil.escape_identifier(header) }.join(', ')
       s3_credentials = PGUtil.escape_string(s3_reader.credentials)
       csv_col_sep = PGUtil.escape_string(array_reader.options[:col_sep])
       csv_quote_char = PGUtil.escape_string(array_reader.options[:quote_char])
-      skip_rows = options.fetch(:csv, {})[:skip_rows].to_i
+      skip_rows = 1 if options.fetch(:csv, {})[:headers] == :first_row
+      skip_rows = options.fetch(:csv, {})[:skip_rows].to_i if options.fetch(:csv, {}).has_key?(:skip_rows)
       copy_sql = <<-SQL
         COPY #{table_name}(#{copy_columns})
-        FROM 's3://#{s3_reader.bucket}/#{s3_reader.key}'
+        FROM 's3://#{s3_bucket}/#{s3_key}'
         WITH CREDENTIALS AS '#{s3_credentials}'
         TRIMBLANKS
         CSV
@@ -125,7 +139,8 @@ module Desmond
       statement_name = "desmond_#{raw_table_name}"
       placeholders = []
       i = 1
-      insert_columns = array_reader.headers.map do |header|
+      headers = array_reader.headers
+      insert_columns = headers.map do |header|
         placeholders << "$#{i.to_i}"
         i += 1
         PGUtil.escape_identifier(header)
@@ -134,11 +149,24 @@ module Desmond
       conn.prepare(statement_name, "insert into #{table_name} (#{insert_columns}) values (#{placeholders})")
       while !array_reader.eof?
         row = array_reader.read
+        fail ArgumentError, "wrong number of columns. found #{row.size}, expected: #{headers.size}" if row.size != headers.size
         conn.exec_prepared(statement_name, row)
       end
     ensure
       # we don't need the prepared statement anymore
-      conn.exec("deallocate #{statement_name}")
+      conn.exec("deallocate #{statement_name}") unless conn.transaction_status == PG::Constants::PQTRANS_INERROR
+    end
+
+    ##
+    # rewrites csv file which use weird newline separator's to use \n
+    # returns s3 key of rewritten file in same folder
+    #
+    def rewrite_weird_newlines(s3_bucket, s3_key, csv_reader, options={})
+      s3_key_ext = File.extname(s3_key)
+      new_s3_key = File.join(File.dirname(s3_key), File.basename(s3_key, s3_key_ext) + 'rewrite' + s3_key_ext)
+      s3writer = Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3])
+      s3writer.write_from(Streams::CSV::CSVStringWriter.new(csv_reader, options.fetch(:csv).merge(row_sep: SAFE_ROW_SEP)))
+      return new_s3_key
     end
   end
 end

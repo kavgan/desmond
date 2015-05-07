@@ -80,6 +80,13 @@ describe Desmond::ImportJob do
         ])
   end
 
+  it 'should import carriage return newlines' do
+    expect(run_import_and_return_rows('spec/import_comma_r_newlines.csv')).to match_array([
+          { "id" => "0", "txt" => "null" },
+          { "id" => "1", "txt" => "eins" }
+        ])
+  end
+
   it 'should drop existing tables on import' do
     fixed_table_name = "desmond_test_#{rand(1024)}"
     run_import_and_return_rows('spec/import_comma.csv', db: { table: fixed_table_name }, donotdeletetable: true)
