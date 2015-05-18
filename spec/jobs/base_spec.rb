@@ -403,4 +403,55 @@ describe Desmond::BaseJob do
       DesmondConfig.clear_exception_notifier
     end
   end
+
+  it 'should adapt to dynamic parameter sets on execute method' do
+    clazz = new_job { define_method(:execute) { 42 }}
+    expect(clazz.enqueue(1, 1).result).to eq(42)
+    clazz = new_job { define_method(:execute) { |job_id| job_id }}
+    expect(clazz.enqueue(42, 1).result).to eq(42)
+    clazz = new_job { define_method(:execute) { |job_id, user_id| job_id + user_id }}
+    expect(clazz.enqueue(21, 21).result).to eq(42)
+  end
+
+  it 'should adapt to dynamic parameter sets on hook methods' do
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+      define_method(:before) { self.class.test_counter = 42 }
+    end
+    clazz.enqueue(1, 1)
+    expect(clazz.test_counter).to eq(42)
+
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+      define_method(:before) { |job_run| self.class.test_counter = job_run.job_id }
+    end
+    clazz.enqueue(42, 1)
+    expect(clazz.test_counter).to eq('42')
+
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+      define_method(:before) { |job_run, job_id| self.class.test_counter = job_id }
+    end
+    clazz.enqueue(42, 1)
+    expect(clazz.test_counter).to eq(42)
+
+    clazz = new_job do
+      @test_counter = 0
+      singleton_class.class_eval do
+        attr_accessor :test_counter
+      end
+      define_method(:before) { |job_run, job_id, user_id| self.class.test_counter = job_id + user_id }
+    end
+    clazz.enqueue(21, 21)
+    expect(clazz.test_counter).to eq(42)
+  end
 end

@@ -19,7 +19,8 @@ require 'sinatra/activerecord/rake'
 require_relative 'spec_job_test_helpers'
 
 DesmondConfig.logger = nil
-#ActiveRecord::Base.logger = Logger.new STDOUT
+#DesmondConfig.logger = Logger.new STDOUT
+ActiveRecord::Base.logger = DesmondConfig.logger
 # recreate test database from migrations
 ActiveRecord::Schema.verbose = false # no output for migrations
 Rake::Task['db:drop'].invoke

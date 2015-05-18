@@ -61,6 +61,7 @@ module Desmond
       unless completed
         fail WaitTimeoutReached.new("Timeout reached while waiting for #{self.name}")
       end
+      run.reload
       if run.done?
         return run.result
       else
@@ -172,7 +173,13 @@ module Desmond
       end
       run_hook(:before)
       log_job_event(:info, "Starting to execute job")
-      @result = self.send :execute, @job_id, user_id, @symbolized_options if self.respond_to?(:execute)
+
+      if self.respond_to?(:execute)
+        arity = self.method(:execute).arity
+        full_args = [@job_id, user_id, @symbolized_options]
+        @result = self.send :execute, *(arity < 0 ? full_args : full_args[0...arity])
+      end
+
       # check that we can actually persist the result
       check_result_type(@result)
       unless @sync
@@ -222,8 +229,10 @@ module Desmond
     def run_hook(name)
       if self.respond_to?(name.to_sym)
         jr = job_run
+        arity = self.method(name.to_sym).arity
+        full_args = [jr, @job_id, @user_id, @symbolized_options]
         # actually call hook method
-        self.send name.to_sym, jr, @job_id, @user_id, @symbolized_options
+        self.send name.to_sym, *(arity < 0 ? full_args : full_args[0...arity])
       end
     rescue Exception => e
       log_job_event(:error, "Error executing hook '#{name}' for job")
