@@ -157,7 +157,7 @@ module Desmond
     #
     def run(job_id, user_id, options={})
       # this is the first time we are in the job instance, so we'll save some important stuff we need
-      @run_id = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
+      @run_id  = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
       @sync    = self.run_id.nil?
       @job_id  = job_id
       @user_id = user_id
@@ -197,7 +197,7 @@ module Desmond
       end
     rescue Exception => e
       log_job_event(:error, "Error executing job")
-      Que.log level: :error, type: e.class, exception: e.message
+      Que.log level: :error, type: e.class.name, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       # save error
       failed_exception(e)

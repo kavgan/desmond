@@ -31,15 +31,18 @@ module Desmond
     # - db
     #   - dropifexists: drop import table if it exists
     #   - timeout: connection timeout to database
+    #   - types: column types
     # - s3
     #   - everything supported by AWS::S3.new
     # - csv (see ruby's CSV documentation)
     #   - col_sep
     #   - row_sep
+    #   - quote_char
+    #   - force_quotes
+    #   - skip_blanks
     #   - headers
     #   - return_headers
-    #   - quote_char
-    #   - skip_header_row (additional option to skip header row regardless of headers option)
+    #   - skip_rows
     #
     def execute(job_id, user_id, options={})
       fail 'No database options!' if options[:db].nil?
