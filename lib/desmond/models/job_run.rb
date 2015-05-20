@@ -116,5 +116,10 @@ module Desmond
     def error
       self['details']['error']
     end
+
+
+    def error_type
+      self['details']['error_type'].constantize
+    end
   end
 end
