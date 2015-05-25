@@ -4,6 +4,25 @@
 module Desmond
   module Streams
     ##
+    # some convenience methods on readers and writers
+    #
+    class Utils
+      ##
+      # pipes +reader+ into +writer+ until eof
+      #
+      # if a block is given, it can be used to modify
+      # what was returned from the +reader+ before it
+      # gets sent to the +writer+.
+      #
+      def self.pipe(reader, writer)
+        until reader.eof?
+          data = reader.read
+          data = yield(data) if block_given?
+          writer.write(data)
+        end
+      end
+    end
+    ##
     # abstract base reader class
     #
     class Reader

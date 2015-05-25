@@ -1,14 +1,14 @@
 require_relative '../spec_helper'
 require 'stringio'
 
-describe Desmond::Streams::CSV::CSVArrayReader do
+describe Desmond::Streams::CSV::CSVReader do
   def guess_separators(content)
-    Desmond::Streams::CSV::CSVArrayReader.guess_separators(StringIO.new(content))
+    Desmond::Streams::CSV::CSVReader.guess_separators(StringIO.new(content))
   end
 
   before(:example) do
     @str_reader = StringIO.new("a,b\nc,d\ne,f")
-    @reader = Desmond::Streams::CSV::CSVArrayReader.new(@str_reader)
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader)
   end
 
   it 'should have eof be false by default' do
@@ -27,19 +27,19 @@ describe Desmond::Streams::CSV::CSVArrayReader do
   end
 
   it 'should skip headers' do
-    @reader = Desmond::Streams::CSV::CSVArrayReader.new(@str_reader, headers: :first_row)
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: :first_row)
     expect(@reader.headers).to eq(['a', 'b'])
     expect(@reader.read).to match_array(['c', 'd'])
   end
 
   it 'should provide option to override headers' do
-    @reader = Desmond::Streams::CSV::CSVArrayReader.new(@str_reader, headers: ['x', 'y'])
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: ['x', 'y'])
     expect(@reader.headers).to eq(['x', 'y'])
     expect(@reader.read).to match_array(['a', 'b'])
   end
 
   it 'should be able to skip header row' do
-    @reader = Desmond::Streams::CSV::CSVArrayReader.new(@str_reader, headers: ['x', 'y'], skip_rows: 1)
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: ['x', 'y'], skip_rows: 1)
     expect(@reader.headers).to eq(['x', 'y'])
     expect(@reader.read).to match_array(['c', 'd'])
   end

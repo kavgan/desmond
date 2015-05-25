@@ -67,9 +67,9 @@ module Desmond
 
       ##
       # expects supplied +reader+ to return a csv string.
-      # this is parsed into arrays and returned by this class.
+      # this is parsed into arrays and returned by the `read` method.
       #
-      class CSVArrayReader < Streams::Reader
+      class CSVReader < Streams::Reader
         include CSVStreamBaseMethods
 
         ROW_SEPS = ["\r\n", "\n", "\r"]
@@ -169,75 +169,65 @@ module Desmond
       end
 
       ##
-      # constructing a csv string from an array reader
+      # constructing a csv string from an array of rows
       #
-      # reads rows from a +reader+ expecting to retrieve
-      # arrays of arrays, representing the rows containing the columns
+      # expects an array of columns (or array of array of columns) to be
+      # given to the `write` method. Generates a csv string out of them and
+      # writes them to the given `writer`.
       #
-      class CSVStringWriter < Streams::Writer
+      class CSVWriter < Streams::Writer
         include CSVStreamBaseMethods
+
         ##
-        # expects a +reader+ returning arrays of columns or
-        # two-dimensional arrays containing rows and then columns.
+        # expects a +writer+ which takes strings.
         # +options+ should be as described above.
         #
-        def initialize(reader, options={})
+        def initialize(writer, options={})
           super()
-          @reader = reader
+          @writer = writer
           @options = self.get_csv_options(options)
           @options.delete(:skip_rows) # not supported by writer anyways
           fail ArgumentError, 'headers cannot be first_row for this writer' if @options[:headers] == :first_row
-          @options[:headers] = reader.headers if !options[:headers] && reader.respond_to?(:headers)
-          @options[:headers] = reader.columns if !options[:headers] && reader.respond_to?(:columns)
         end
 
         ##
-        # reads from the supplied reader in `initialize`, transforming the retrieved rows
-        # into a csv string.
+        # transforms the given row(s) into a csv string and writes them to
+        # +writer+ supplied during `initialize`.
         # returns the csv string of the rows processed in this invocation
         #
-        def read
-          tmp = nil
-          # check if we need to read a header line
+        def write(row)
+          fail 'Expecting an array' unless row.is_a?(Array)
+          written = ''
+          # check if we need to generate a header line
           if @options[:return_headers] && @options[:headers]
             @options[:return_headers] = false
-            tmp = ::CSV.generate_line(@options[:headers], @options)
+            hdr_line = ::CSV.generate_line(@options[:headers], @options)
+            @writer.write(hdr_line)
+            written += hdr_line
           end
 
-          # read rows from supplied reader
-          if tmp.nil?
-            tmp = ::CSV.generate(@options) do |csv|
-              tmp = @reader.read
-              # did we get an array of rows or just one row?
-              if tmp.size > 0 && tmp[0].is_a?(Enumerable)
-                tmp.map do |row|
-                  csv << row
-                end
-              elsif tmp.size > 0
-                csv << tmp
-              else
-                return nil
-              end
+          # generate new row
+          tmp = ::CSV.generate(@options) do |csv|
+            # did we get an array of rows or just one row?
+            if row.size > 0 && row[0].is_a?(Enumerable)
+              return row.map { |tmp_row| self.write(tmp_row) }
+            elsif row.size > 0
+              csv << row
+            else
+              return nil
             end
           end
 
           # return to caller
-          yield(tmp) if block_given?
-          tmp
+          @writer.write(tmp)
+          written + tmp
         end
 
         ##
-        # reached the end of file?
-        #
-        def eof?
-          @reader.eof?
-        end
-
-        ##
-        # close reader
+        # close writer
         #
         def close
-          @reader.close
+          @writer.close
         end
       end
     end

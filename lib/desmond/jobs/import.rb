@@ -67,7 +67,7 @@ module Desmond
           bucket,
           s3_key,
           options[:s3])
-        r = Desmond::Streams::CSV::CSVArrayReader.guess_and_create(s, options.fetch(:csv, {}))
+        r = Desmond::Streams::CSV::CSVReader.guess_and_create(s, options.fetch(:csv, {}))
         headers = r.headers
         fail 'No CSV headers!' if headers.empty?
 
@@ -167,9 +167,14 @@ module Desmond
     def rewrite_weird_newlines(s3_bucket, s3_key, csv_reader, options={})
       s3_key_ext = File.extname(s3_key)
       new_s3_key = File.join(File.dirname(s3_key), File.basename(s3_key, s3_key_ext) + 'rewrite' + s3_key_ext)
-      s3writer = Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3])
-      s3writer.write_from(Streams::CSV::CSVStringWriter.new(csv_reader, options.fetch(:csv).merge(row_sep: SAFE_ROW_SEP)))
+      csv_writer = Streams::CSV::CSVWriter.new(
+        Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3]),
+        options.fetch(:csv).merge(row_sep: SAFE_ROW_SEP)
+      )
+      Streams::Utils.pipe(csv_reader, csv_writer)
       return new_s3_key
+    ensure
+      csv_writer.close unless csv_writer.nil?
     end
   end
 end

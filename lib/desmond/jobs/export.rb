@@ -96,22 +96,25 @@ module Desmond
       csv_reader = nil
       begin
         # csv reader, transforms database rows to csv
-        csv_reader = Streams::Database::PGCursorReader.create_csv_reader(
+        db_reader = Streams::Database::PGCursorReader.new(
           export_id,
           options[:db][:query],
           {
-            db: {
-              fetch_size: FETCH_SIZE,
-              timeout: TIMEOUT
-            }
-          }.deep_merge(options)
+            fetch_size: FETCH_SIZE,
+            timeout: TIMEOUT
+          }.deep_merge(options.fetch(:db, {}))
         )
 
-        # stream write to S3 from csv reader
-        s3writer = Streams::S3::S3Writer.new(s3_bucket, s3_key, options[:s3])
-        s3writer.write_from(csv_reader)
+        # stream write to S3 from csv writer
+
+        csv_writer = Streams::CSV::CSVWriter.new(
+          Streams::S3::S3Writer.new(s3_bucket, s3_key, options[:s3]),
+          { headers: db_reader.columns }.merge(options.fetch(:csv, {}))
+        )
+        Streams::Utils.pipe(db_reader, csv_writer)
       ensure
-        csv_reader.close unless csv_reader.nil?
+        db_reader.close unless db_reader.nil?
+        csv_writer.close unless csv_writer.nil?
       end
 
       # everything is done

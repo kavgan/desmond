@@ -32,6 +32,7 @@ describe Desmond::ImportJob do
           }
         }.deep_merge(options)
       )
+      #fail run.error if run.failed?
     ensure
       s3_obj.delete unless s3_obj.nil?
     end

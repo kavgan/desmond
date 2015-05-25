@@ -75,18 +75,6 @@ module Desmond
           @eof
         end
 
-        ##
-        # creates an instance of Streams::CSV:CSVStringWriter wrapped around this class,
-        # letting you read csv from the database
-        #
-        # the 'db' key of +options+ is passed to the Postgres database reader.
-        # key 'csv' in +options+ is passed to the CSV reader. See respective classes
-        # for supported and required options.
-        #
-        def self.create_csv_reader(name, query, options={})
-          Streams::CSV::CSVStringWriter.new(self.new(name, query, options[:db]), options[:csv])
-        end
-
         protected
 
         def init_cursor

@@ -104,27 +104,6 @@ module Desmond
           @thread.join
         end
 
-        ##
-        # uses +reader+ to write to the initialized S3 object until EOF is reached.
-        # does NOT close the reader.
-        # S3 object is deleted on error
-        #
-        def write_from(reader)
-          exception_thrown = false
-          while !reader.eof?
-            self.write(reader.read)
-          end
-        rescue => e
-          # remove object if error occurred
-          exception_thrown = true
-          raise e
-        ensure
-          self.close
-          # this needs to be done after the child process is done,
-          # othwerwise it recreates the object
-          @o.delete if exception_thrown
-        end
-
         private
 
         def recreate
