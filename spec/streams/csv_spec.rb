@@ -30,18 +30,52 @@ describe Desmond::Streams::CSV::CSVReader do
     @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: :first_row)
     expect(@reader.headers).to eq(['a', 'b'])
     expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
   end
 
   it 'should provide option to override headers' do
     @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: ['x', 'y'])
     expect(@reader.headers).to eq(['x', 'y'])
     expect(@reader.read).to match_array(['a', 'b'])
+    expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
   end
 
   it 'should be able to skip header row' do
     @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: ['x', 'y'], skip_rows: 1)
     expect(@reader.headers).to eq(['x', 'y'])
     expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
+  end
+
+  it 'should be able to return the header row' do
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: ['x', 'y'], return_headers: true)
+    expect(@reader.headers).to eq(['x', 'y'])
+    expect(@reader.read).to match_array(['x', 'y'])
+    expect(@reader.read).to match_array(['a', 'b'])
+    expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
+  end
+
+  it 'should be able to parse and return the header row with calling headers before' do
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: :first_row, return_headers: true)
+    expect(@reader.headers).to eq(['a', 'b'])
+    expect(@reader.read).to match_array(['a', 'b'])
+    expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
+  end
+
+  it 'should be able to parse and return the header row without calling headers before' do
+    @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader, headers: :first_row, return_headers: true)
+    expect(@reader.read).to match_array(['a', 'b'])
+    expect(@reader.read).to match_array(['c', 'd'])
+    expect(@reader.read).to match_array(['e', 'f'])
+    expect(@reader.read).to be_nil
   end
 
   it 'should guess col_sep correctly' do

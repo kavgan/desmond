@@ -10,7 +10,7 @@ require 'csv'
 # - skip_blanks, only really useful with readers
 # slightly different implementation:
 # - headers, support false, first_row or array
-# - return_headers, is a writer option only
+# - return_headers, if headers are also returned by read/write, instead of just being parsed and swallowed
 # added options:
 # - skip_rows, reader only, integer of top rows to skip, defaults to 0,
 #              in case you want to override a header row with your own headers
@@ -84,16 +84,26 @@ module Desmond
           @options = self.get_csv_options(options)
           @skip_rows = @options.delete(:skip_rows)
           @headers = @options.delete(:headers)
-          @options.delete(:return_headers) # not supported by reader anyways
+          @return_headers = @options.delete(:return_headers)
           @reader = Streams::LineReader.new(reader, newline: options[:row_sep])
-          @buff = nil
+          @buff = []
         end
 
         ##
         # returns the column headers
         #
         def headers
-          @buff = self.read if @headers == :first_row
+          if @headers == :first_row
+            # return_headers will get overriden
+            return_headers_saved = @return_headers
+            tmp = self.read
+            # if we want to return the headers first, add them to the front of the buffer
+            if return_headers_saved
+              @buff.unshift(@headers)
+            else
+              @buff << tmp
+            end
+          end
           super()
         end
 
@@ -103,8 +113,8 @@ module Desmond
         #
         def read
           # if something was buffered, return it now
-          unless @buff.nil?
-            tmp, @buff = @buff, nil
+          unless @buff.empty?
+            tmp = @buff.shift
             return tmp
           end
           # read further
@@ -123,6 +133,12 @@ module Desmond
           end
           # always return an array of columns
           tmp = tmp.to_hash.values if tmp.is_a?(::CSV::Row)
+          # if we are requested to return the headers, we'll do so
+          if @return_headers
+            @return_headers = false
+            @buff << tmp
+            tmp = @headers
+          end
           tmp
         end
 
