@@ -193,6 +193,7 @@ module Desmond
       #
       class CSVWriter < Streams::Writer
         include CSVStreamBaseMethods
+        attr_reader :writer
 
         ##
         # expects a +writer+ which takes strings.
@@ -202,8 +203,8 @@ module Desmond
           super()
           @writer = writer
           @options = self.get_csv_options(options)
+          @headers = @options[:headers]
           @options.delete(:skip_rows) # not supported by writer anyways
-          fail ArgumentError, 'headers cannot be first_row for this writer' if @options[:headers] == :first_row
         end
 
         ##
@@ -214,12 +215,28 @@ module Desmond
         def write(row)
           fail 'Expecting an array' unless row.is_a?(Array)
           written = ''
+
+          # check if we need to parse the headers
+          if @options[:headers] == :first_row
+            @headers = @options[:headers] = row
+            return ''
+          end
+
           # check if we need to generate a header line
           if @options[:return_headers] && @options[:headers]
             @options[:return_headers] = false
-            hdr_line = ::CSV.generate_line(@options[:headers], @options)
+            if @options[:headers] == :first_row
+              #p "CSVWriter headers first_row: #{row}"
+              hdr_line = ::CSV.generate_line(row, @options)
+            else
+              hdr_line = ::CSV.generate_line(@options[:headers], @options)
+            end
             @writer.write(hdr_line)
             written += hdr_line
+            if @options[:headers] == :first_row
+              @options[:headers] = row
+              return written
+            end
           end
 
           # generate new row

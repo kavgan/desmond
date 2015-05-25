@@ -73,6 +73,8 @@ module Desmond
       # All +options+ valid for AWS::S3.new are supported.
       #
       class S3Writer < Streams::Writer
+        attr_reader :bucket, :key
+
         def initialize(bucket, key, options={})
           @bucket = bucket
           @key = key

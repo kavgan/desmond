@@ -9,6 +9,8 @@ describe Desmond::Streams::CSV::CSVReader do
   before(:example) do
     @str_reader = StringIO.new("a,b\nc,d\ne,f")
     @reader = Desmond::Streams::CSV::CSVReader.new(@str_reader)
+    @str_writer = StringIO.new
+    @writer = Desmond::Streams::CSV::CSVReader.new(@str_writer)
   end
 
   it 'should have eof be false by default' do
