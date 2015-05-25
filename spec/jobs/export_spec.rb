@@ -27,7 +27,7 @@ describe Desmond::ExportJob do
         }
       }.deep_merge(options)
     )
-    AWS::S3.new.buckets[@config[:export_bucket]].objects[run.filename].delete unless options[:donotdelete]
+    AWS::S3.new.buckets[@config[:export_bucket]].objects[run.result['key']].delete unless run.failed? || options[:donotdelete]
     run
   end
 
@@ -40,7 +40,7 @@ describe Desmond::ExportJob do
     s3_obj = nil
     csv = nil
     begin
-      s3_obj = AWS::S3.new.buckets[@config[:export_bucket]].objects[run.filename]
+      s3_obj = AWS::S3.new.buckets[@config[:export_bucket]].objects[run.result['key']]
       csv = s3_obj.read
     ensure
       s3_obj.delete
@@ -85,6 +85,22 @@ describe Desmond::ExportJob do
     expect(run.done?).to eq(true)
     expect(run.result).to have_key('bucket')
     expect(run.result).to have_key('key')
+    expect(run.result).to have_key('access_key')
+  end
+
+  it 'should allow custom s3 names' do
+    custom_s3_key = "custom_desmond_test_#{rand(1024)}"
+    run = run_export(csv: {
+        col_sep: '|',
+        return_headers: false
+    },
+    s3: {
+      key: custom_s3_key
+    })
+    expect(run.done?).to eq(true)
+    expect(run.result).to have_key('bucket')
+    expect(run.result).to have_key('key')
+    expect(run.result['key']).to eq(custom_s3_key)
     expect(run.result).to have_key('access_key')
   end
 

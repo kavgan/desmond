@@ -90,7 +90,7 @@ module Desmond
       fail 'No database options!' if options[:db].nil?
       fail 'No s3 options!' if options[:s3].nil?
       s3_bucket = options[:s3][:bucket]
-      s3_key = job_run_filename
+      s3_key = options[:s3][:key] || job_run_filename
       fail 'No S3 export bucket!' if s3_bucket.nil? || s3_bucket.empty?
 
       csv_reader = nil
