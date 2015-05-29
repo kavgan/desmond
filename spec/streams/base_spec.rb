@@ -29,6 +29,41 @@ describe Desmond::Streams::LineReader do
     expect(@reader.read).to eq(nil)
   end
 
+  it ' should guess the newline charcater correctly' do
+    expect(Desmond::Streams::LineReader.guess_newline_char(StringIO.new("a\nb\nc"))).to eq("\n")
+    expect(Desmond::Streams::LineReader.guess_newline_char(StringIO.new("a\rb\rc"))).to eq("\r")
+    expect(Desmond::Streams::LineReader.guess_newline_char(StringIO.new("a\r\nb\r\nc"))).to eq("\r\n")
+    expect(Desmond::Streams::LineReader.guess_newline_char(StringIO.new("a\nb\rc\r"))).to eq("\r")
+    expect(Desmond::Streams::LineReader.guess_newline_char(StringIO.new("a\nb\rc\n"))).to eq("\n")
+  end
+
+  it 'should read line by line with \r' do
+    @str_reader = StringIO.new("a\rb\rc")
+    @reader = Desmond::Streams::LineReader.guess_and_create(@str_reader)
+    expect(@reader.read).to eq("a\r")
+    expect(@reader.read).to eq("b\r")
+    expect(@reader.read).to eq("c")
+    expect(@reader.read).to eq(nil)
+  end
+
+  it 'should read line by line with \r\n' do
+    @str_reader = StringIO.new("a\r\nb\r\nc")
+    @reader = Desmond::Streams::LineReader.guess_and_create(@str_reader)
+    expect(@reader.read).to eq("a\r\n")
+    expect(@reader.read).to eq("b\r\n")
+    expect(@reader.read).to eq("c")
+    expect(@reader.read).to eq(nil)
+  end
+
+  it 'should skip empty last lines' do
+    @str_reader = StringIO.new("a\nb\nc\n")
+    @reader = Desmond::Streams::LineReader.guess_and_create(@str_reader)
+    expect(@reader.read).to eq("a\n")
+    expect(@reader.read).to eq("b\n")
+    expect(@reader.read).to eq("c\n")
+    expect(@reader.read).to eq(nil)
+  end
+
   it 'should set eof' do
     while not(@reader.read.nil?) do
     end

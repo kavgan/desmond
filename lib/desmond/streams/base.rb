@@ -50,11 +50,17 @@ module Desmond
       end
     end
     ##
+    # if your reader supports `rewind`, it is recommend to
+    # use `guess_and_create` to get a new LineReader. It will
+    # try to guess the newline character to use automatically.
+    #
     # read the given IO class +reader+ line by line.
     # supported options:
     # - newline: characters separating lines, defaults to \n
     #
     class LineReader < Reader
+      NEW_LINE_CHARS = ["\r\n", "\n", "\r"]
+
       def initialize(reader, options={})
         @options = {
           newline: "\n"
@@ -77,6 +83,26 @@ module Desmond
       def close
         @reader_obj.close
       end
+
+      def self.guess_newline_char(reader, guess_bytes=4096)
+        # read a few bytes to use for guessing
+        content = ''
+        until guess_bytes <= 0 || reader.eof?
+          tmp          = reader.read
+          guess_bytes -= tmp.length
+          content     += tmp
+        end
+        return content.max_substr_count(NEW_LINE_CHARS)
+      end
+
+      def self.guess_and_create(reader, options={})
+          guess_bytes = options.delete(:guess_bytes) || 4096
+          options = {
+            newline: self.guess_newline_char(reader, guess_bytes)
+          }.merge(options)
+          reader.rewind
+          self.new(reader, options)
+        end
     end
     class GzipReader < Reader
       def initialize(reader, options={})
