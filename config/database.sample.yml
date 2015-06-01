@@ -6,3 +6,19 @@ development:
   port: 5432
   username: username
   password: password
+
+# connection for running some of the rspec tests
+test:
+  adapter: postgresql
+  host: localhost
+  database: database
+  port: 5432
+  username: username
+  password: password
+redshift_test:
+  adapter: redshift
+  host: cluster1.redshift.example.com
+  database: amg
+  port: 5439
+  username: username
+  password: password

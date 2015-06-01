@@ -20,6 +20,7 @@ require_relative 'desmond/jobs/base'
 require_relative 'desmond/jobs/base_no_job_id'
 require_relative 'desmond/jobs/export'
 require_relative 'desmond/jobs/import'
+require_relative 'desmond/jobs/unload'
 
 require_relative 'desmond/models/job_run'
 

@@ -3,3 +3,9 @@ secret_access_key: secret_key # aws secret key to use for requests
 export_bucket: export-bucket # bucket to be used for exports
 import_bucket: import-bucket # bucket to be used for imports
 import_schema: schema # RedShift schema to use for importing
+
+# For UnloadJob tests
+unload_schema: schema # Redshift schema
+unload_bucket: unload-bucket # S3 bucket
+unload_username: username # RedShift username
+unload_password: password # RedShift password
