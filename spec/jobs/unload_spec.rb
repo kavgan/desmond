@@ -8,7 +8,7 @@ describe Desmond::UnloadJob do
   # Runs an UnloadJob with the specified options and returns the job run.
   #
   def run_unload(options)
-    return Desmond::UnloadJob.enqueue('JobId', 'UserId', options)
+    return Desmond::UnloadJob.enqueue('UserId', options)
   end
 
   #

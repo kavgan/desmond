@@ -5,7 +5,7 @@ module Desmond
   # Please see `BaseJob` class documentation on how to run
   # any job using its general interface.
   #
-  class UnloadJob < BaseJob
+  class UnloadJob < BaseJobNoJobId
     ##
     # runs an unload of a Redshift table into S3
     # see `BaseJob` for information on arguments except +options+.
