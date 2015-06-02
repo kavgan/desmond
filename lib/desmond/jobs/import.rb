@@ -96,7 +96,7 @@ module Desmond
         end
 
         # done return table we used
-        { table: full_table_name }
+        { table: full_table_name, schema_name: schema_name, table_name: table_name }
       end
     ensure
       conn.close unless conn.nil?
