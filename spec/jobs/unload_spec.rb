@@ -25,7 +25,7 @@ describe Desmond::UnloadJob do
     # Ensure S3 files hold the table data.
     data = []
     bucket.objects.each do |obj|
-      if obj.key =~ /#{Regexp.quote(@full_table_name)}[0-9]*_part_[0-9]*/
+      if obj.key =~ /#{Regexp.quote(options[:s3][:prefix])}[0-9]*_part_[0-9]*/
         obj.read.split("\n").each do |line|
           d = line.split('|')
           data << line.split('|') unless d.empty?
@@ -44,8 +44,7 @@ describe Desmond::UnloadJob do
             connection_id: @connection_id,
             username: @config[:unload_username],
             password: @config[:unload_password],
-            schema: @config[:unload_schema],
-            table: nil
+            query: nil
         },
         s3: {
             access_key_id: @config[:access_key_id],
@@ -64,7 +63,7 @@ describe Desmond::UnloadJob do
   end
 
   it 'should succeed with basic options' do
-    options = merge_options({db: {table: @table},
+    options = merge_options({db: {query: "SELECT * FROM #{@full_table_name}"},
                s3: {prefix: @full_table_name}})
     check_success(run_unload(options), options)
   end

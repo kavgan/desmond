@@ -15,8 +15,7 @@ module Desmond
     #   - connection_id: ActiveRecord connection id used to connect to database
     #   - username: database username
     #   - password: database password
-    #   - schema: schema of table to unload
-    #   - table: name of table to unload
+    #   - query: query to unload
     # - s3
     #   - access_key_id: s3 access key
     #   - secret_access_key: s3 secret key
@@ -50,17 +49,15 @@ module Desmond
       fail 'Empty secret key!' if secret_key.nil? || secret_key.empty?
 
       # construct full escaped table name
-      schema_name = options[:db][:schema]
-      fail 'Empty schema name!' if schema_name.nil? || schema_name.empty?
-      table_name = options[:db][:table]
-      fail 'Empty table name!' if table_name.nil? || table_name.empty?
+      query = options[:db][:query]
+      fail 'Empty query!' if query.nil? || query.empty?
 
       # execute UNLOAD sql
       bucket = PGUtil.escape_string(bucket)
       prefix = PGUtil.escape_string(prefix)
       access_key = PGUtil.escape_string(access_key)
       secret_key = PGUtil.escape_string(secret_key)
-      full_table_name = PGUtil.get_escaped_table_name(options[:db], schema_name, table_name)
+      query = PGUtil.escape_string(query)
       unload_options = ''
       unless options[:unload].nil? || options[:unload].empty?
         unload_options += 'ALLOWOVERWRITE' if options[:unload][:allowoverwrite]
@@ -72,7 +69,7 @@ module Desmond
         end
       end
       unload_sql = <<-SQL
-          UNLOAD ('SELECT * FROM #{full_table_name}')
+          UNLOAD ('#{query}')
           TO 's3://#{bucket}/#{prefix}'
           CREDENTIALS 'aws_access_key_id=#{access_key};aws_secret_access_key=#{secret_key}'
           MANIFEST #{unload_options};
