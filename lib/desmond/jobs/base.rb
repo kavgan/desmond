@@ -199,7 +199,7 @@ module Desmond
     rescue Exception => e
       log_job_event(:error, "Error executing job")
       Que.log level: :error, type: e.class.name, exception: e.message
-      Que.log level: :error, backtrace: e.backtrace.join("\n ")
+      Que.logger.error e.backtrace.join("\n ") unless Que.logger.nil?
       # save error
       failed_exception(e)
       # in sync mode we'll raise the error to the caller, so we won't notify subscribers

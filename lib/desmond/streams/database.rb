@@ -112,7 +112,7 @@ module Desmond
         protected
 
         def execute(sql)
-          Que.log level: :debug, sql: sql
+          Que.logger.debug sql unless Que.logger.nil?
           @conn.exec(sql)
         end
       end

@@ -96,13 +96,13 @@ module Desmond
       end
 
       def self.guess_and_create(reader, options={})
-          guess_bytes = options.delete(:guess_bytes) || 4096
-          options = {
-            newline: self.guess_newline_char(reader, guess_bytes)
-          }.merge(options)
-          reader.rewind
-          self.new(reader, options)
-        end
+        guess_bytes = options.delete(:guess_bytes) || 4096
+        options = {
+          newline: self.guess_newline_char(reader, guess_bytes)
+        }.merge(options)
+        reader.rewind
+        self.new(reader, options)
+      end
     end
     class GzipReader < Reader
       def initialize(reader, options={})
