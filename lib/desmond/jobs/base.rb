@@ -115,7 +115,9 @@ module Desmond
     def failed(error, additional={})
       delete_job(false)
       @error = error
-      job_run.update(details: { error: error }.merge(job_run.details).merge(additional)) unless @sync
+      # postgres likes to create insanely long exception messages for big queries.
+      # truncating that so the database doesn't grow unnecessarily.
+      job_run.update(details: { error: error[0..512] }.merge(job_run.details).merge(additional)) unless @sync
     end
 
     ##
