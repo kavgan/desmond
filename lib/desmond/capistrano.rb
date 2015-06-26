@@ -40,10 +40,7 @@ Capistrano::Configuration.instance.load do
     end
 
     def cmd(cmd)
-      # sleep works around an annoying bug in the daemons gem:
-      # - https://github.com/thuehlinger/daemons/pull/29/files
-      # waiting until that gets into a release to remove it!
-      "cd #{current_path};#{env} #{workers} #{que_command} #{cmd} #{pid_dir}; sleep 3"
+      "cd #{current_path};#{env} #{workers} #{que_command} #{cmd} #{pid_dir}"
     end
 
     desc 'Stop the que process'

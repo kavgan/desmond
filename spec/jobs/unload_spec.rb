@@ -1,8 +1,8 @@
 require_relative '../spec_helper'
 
 describe Desmond::UnloadJob do
-  RS_CONN_ID = 'redshift_test'
-  let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: RS_CONN_ID) }
+  UNLOAD_RS_CONN_ID = 'redshift_test'
+  let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: UNLOAD_RS_CONN_ID) }
 
   #
   # Runs an UnloadJob with the specified options and returns the job run.
@@ -69,7 +69,7 @@ describe Desmond::UnloadJob do
   end
 
   before(:each) do
-    @connection_id = 'redshift_test'
+    @connection_id = UNLOAD_RS_CONN_ID
     @schema = @config[:unload_schema]
     @table = "unload_test_#{Time.now.to_i}_#{rand(1024)}"
     @full_table_name = "#{@schema}.#{@table}"

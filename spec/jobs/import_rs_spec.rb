@@ -1,8 +1,8 @@
 require_relative '../spec_helper'
 
 describe Desmond::ImportJob do
-  RS_CONN_ID = 'redshift_test'
-  let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: RS_CONN_ID) }
+  IMPORT_RS_CONN_ID = 'redshift_test'
+  let (:conn) { Desmond::PGUtil.dedicated_connection(connection_id: IMPORT_RS_CONN_ID) }
 
   #
   # runs an import and returns the job run
@@ -19,7 +19,7 @@ describe Desmond::ImportJob do
 
       run = Desmond::ImportJob.enqueue('JobId', 'UserId', {
           db: {
-            connection_id: RS_CONN_ID,
+            connection_id: IMPORT_RS_CONN_ID,
             schema: @config[:import_schema],
             table: unique_name
           },
