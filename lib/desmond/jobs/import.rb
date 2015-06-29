@@ -7,6 +7,7 @@ module Desmond
   #
   class ImportJob < BaseJob
     SAFE_ROW_SEP = "\n"
+    VALID_TYPES = [ 'int2', 'int4', 'int8', 'integer', 'float', 'float4', 'float8', 'varchar' ]
     ##
     # runs an import
     # see `BaseJob` for information on arguments except +options+.
@@ -76,7 +77,8 @@ module Desmond
         create_table_sql  = "CREATE TABLE #{full_table_name} ("
         create_table_sql += headers.zip(column_types).map do |header, type|
           column_type = 'VARCHAR'
-          column_type = PGUtil.escape_identifier(type) unless type.nil?
+          column_type = type unless type.nil?
+          fail ArgumentError, "Invalid column type: '#{column_type}'" unless VALID_TYPES.include?(column_type.downcase)
           "#{PGUtil.escape_identifier(header)} #{column_type}"
         end.join(',')
         create_table_sql += ');'
