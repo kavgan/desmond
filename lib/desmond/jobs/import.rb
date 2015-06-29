@@ -124,7 +124,7 @@ module Desmond
       s3_credentials = PGUtil.escape_string(s3_reader.credentials)
       csv_col_sep = PGUtil.escape_string(array_reader.options[:col_sep])
       csv_quote_char = PGUtil.escape_string(array_reader.options[:quote_char])
-      skip_rows = 1 if options.fetch(:csv, {})[:headers] == :first_row
+      skip_rows = 1 if options.fetch(:csv, {})[:headers].try(:to_sym) == :first_row
       skip_rows = options.fetch(:csv, {})[:skip_rows].to_i if options.fetch(:csv, {}).has_key?(:skip_rows)
       copy_sql = <<-SQL
         COPY #{table_name}(#{copy_columns})

@@ -1,6 +1,3 @@
-# TODO make read functions IO.read compatible
-# TODO IO.read reads until EOF with no argument, make sure we don't that anymore
-
 module Desmond
   module Streams
     ##
