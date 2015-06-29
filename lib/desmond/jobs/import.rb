@@ -7,7 +7,7 @@ module Desmond
   #
   class ImportJob < BaseJob
     SAFE_ROW_SEP = "\n"
-    VALID_TYPES = [ 'int2', 'int4', 'int8', 'integer', 'float', 'float4', 'float8', 'varchar' ]
+    VALID_TYPES = [ 'int2', 'int4', 'int8', 'integer', 'int', 'float', 'float4', 'float8', 'varchar' ]
     ##
     # runs an import
     # see `BaseJob` for information on arguments except +options+.
