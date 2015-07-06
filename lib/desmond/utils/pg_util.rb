@@ -157,7 +157,7 @@ module Desmond
       elsif connection.is_a?(PG::Connection)
         connection
       else
-        fail ArgumentError, 'Unsupported connection!'
+        fail ArgumentError, "Unsupported connection: #{connection.class.name}!"
       end
     end
     private_class_method :get_pg_connection
