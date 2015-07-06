@@ -83,6 +83,25 @@ module Desmond
     end
 
     ##
+    # do a 'copy from stdin' through the postgresql connection.
+    # send the given COPY query +copy_query+ through +connection+ and
+    # afterwards calls the supplied block until it returns nil, any
+    # other return value is send through the +connection+ for the COPY
+    # command
+    #
+    def self.copy_from(connection, copy_query, &block)
+      data = nil
+      connection = get_pg_connection(connection)
+      connection.copy_data(copy_query) do
+        loop do
+          data = block.call unless block.nil?
+          connection.put_copy_data(data) unless data.nil?
+          break if data.nil?
+        end
+      end
+    end
+
+    ##
     # returns the database adapter used with the given database +options+
     #
     def self.get_database_adapter(options)

@@ -1,7 +1,7 @@
 module JobTestHelpers
   # create a new subclass of +base+, +block+ can be used to define methods and stuff
   def new_job(base=Desmond::BaseJob, &block)
-    clazz_name = "DemondTestJob#{rand(4096)}"
+    clazz_name = "DemondTestJob#{rand(8192)}"
     clazz = Class.new(base) do
       define_method(:name) do
         clazz_name
