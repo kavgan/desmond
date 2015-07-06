@@ -85,9 +85,9 @@ module Desmond
     ##
     # do a 'copy from stdin' through the postgresql connection.
     # send the given COPY query +copy_query+ through +connection+ and
-    # afterwards calls the supplied block until it returns nil, any
-    # other return value is send through the +connection+ for the COPY
-    # command
+    # afterwards calls the supplied block until it returns nil or an
+    # emptry string, any other return value is send through the
+    # +connection+ for the COPY command
     #
     def self.copy_from(connection, copy_query, &block)
       data = nil
@@ -95,8 +95,8 @@ module Desmond
       connection.copy_data(copy_query) do
         loop do
           data = block.call unless block.nil?
-          connection.put_copy_data(data) unless data.nil?
-          break if data.nil?
+          connection.put_copy_data(data) unless data.blank?
+          break if data.blank?
         end
       end
     end
