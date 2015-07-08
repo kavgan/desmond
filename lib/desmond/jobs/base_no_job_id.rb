@@ -28,6 +28,13 @@ module Desmond
     end
 
     ##
+    # see `Desmond::BaseJob.enqueue_and_wait`
+    #
+    def self.enqueue_and_wait(user_id, options={})
+      super(self.default_job_id, user_id, options)
+    end
+
+    ##
     # see `Desmond::BaseJob.run`
     #
     def self.run(*args)

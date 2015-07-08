@@ -54,7 +54,7 @@ module Desmond
     # raises `WaitTimeoutReached` if job is not done after timeout
     # returns the return value of the job's execute method
     #
-    def enqueue_and_wait(job_id, user_id, timeout=nil, options={})
+    def self.enqueue_and_wait(job_id, user_id, timeout=nil, options={})
       fail ArgumentError, "timeout argument needs to be numeric, is '#{timeout}'" unless timeout.nil? || timeout.is_a?(Numeric)
       run = self.enqueue(job_id, user_id, options)
       completed = !run.wait_until_finished(timeout).nil?
