@@ -48,7 +48,7 @@ module Desmond
         # returns array of rows containing column values:
         # [ [value1, value2], ... ]
         #
-        def read
+        def read(*args) # ignoring any argument for now
           self.init_cursor unless @init_cursor
 
           unless @buff.nil?

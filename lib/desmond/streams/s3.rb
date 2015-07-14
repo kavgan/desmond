@@ -30,8 +30,8 @@ module Desmond
           r
         end
 
-        def each_line(*args)
-          @reader.each_line(*args)
+        def gets(*args)
+          @reader.gets(*args)
         end
 
         def eof?

@@ -30,7 +30,11 @@ module Desmond
         @options = {}
       end
 
-      def read
+      def read(*args) # ignoring any argument for now
+        fail NotImplementedError
+      end
+
+      def gets(*args) # ignoring any argument for now
         fail NotImplementedError
       end
 
@@ -63,14 +67,10 @@ module Desmond
           newline: "\n"
         }.merge(options.delete_if { |_, v| v.nil? })
         @reader_obj = reader
-        @reader = reader.each_line(@options[:newline])
       end
 
-      def read
-        return @reader.next
-      rescue StopIteration
-        @eof = true
-        return nil
+      def read(*args) # ignoring any argument for now
+        return @reader_obj.gets(@options[:newline])
       end
 
       def eof?
@@ -106,7 +106,7 @@ module Desmond
         @reader_obj = reader
         @reader = Zlib::GzipReader.new(@reader_obj)
       end
-      def read
+      def read(*args) # ignoring any argument for now
         t = @reader.read
         return nil if t.nil? || t.empty?
         t
@@ -127,7 +127,7 @@ module Desmond
         @options = {}
       end
 
-      def write
+      def write(data)
         fail NotImplementedError
       end
 

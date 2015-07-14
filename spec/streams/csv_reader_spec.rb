@@ -92,6 +92,7 @@ describe Desmond::Streams::CSV::CSVReader do
     expect(guess_separators("'a',b\nc,'d'\ne,f")[:quote_char]).to eq("'")
     expect(guess_separators("a,b\nc,d\ne,\"f\"")[:quote_char]).to eq("\"")
     expect(guess_separators("a,b\nc,'d\ne,\"f\"")[:quote_char]).to eq("\"")
+    expect(guess_separators("a,b'\nc,d\ne,f")[:quote_char]).to eq('"')
   end
 
   it 'should guess row_sep correctly' do

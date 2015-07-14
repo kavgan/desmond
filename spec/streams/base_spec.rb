@@ -86,7 +86,7 @@ end
 
 describe Desmond::Streams::Writer do
   it 'should not have write implemented' do
-    expect { Desmond::Streams::Writer.new.write }.to raise_error(NotImplementedError)
+    expect { Desmond::Streams::Writer.new.write('data') }.to raise_error(NotImplementedError)
   end
   it 'should not have close implemented' do
     expect { Desmond::Streams::Writer.new.close }.to raise_error(NotImplementedError)

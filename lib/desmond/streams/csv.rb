@@ -111,7 +111,7 @@ module Desmond
         # expects to read a string representing a CSV file from +reader+ supplied in initialize.
         # parses it to an array representing the columns and returns them
         #
-        def read
+        def read(*args) # ignoring any argument for now
           # if something was buffered, return it now
           unless @buff.empty?
             tmp = @buff.shift
@@ -120,6 +120,8 @@ module Desmond
           # read further
           tmp = @reader.read
           return nil if tmp.nil?
+          # replace invalid characters
+          tmp.encode!(Encoding.default_external, invalid: :replace)
           # skip rows if requested
           if @skip_rows > 0
             @skip_rows -= 1
@@ -160,13 +162,18 @@ module Desmond
         # guesses row_sep, col_sep and quote_char.
         # returns hash
         #
-        def self.guess_separators(reader, guess_lines=100)
+        def self.guess_separators(reader, guess_lines=100, block_size=4096)
           # read 100 lines for guessing
-          content = (0..guess_lines).map { reader.read }.join('')
+          content = (0..guess_lines).map { reader.read(block_size) }.join('')
           row_sep = content.max_substr_count(ROW_SEPS)
           col_sep = content.max_substr_count(COL_SEPS)
           quote_char = content.max_substr_count(QUOTE_CHARS) do |content, qc|
-            content.scan("#{col_sep}#{qc}").size + content.scan("#{qc}#{col_sep}").size
+            limits  = (content.scan(/\A#{qc}/).size + content.scan(/#{qc}\Z/).size)
+            outside = (content.scan("#{row_sep}#{qc}").size + content.scan("#{qc}#{row_sep}").size)
+            inside  = (content.scan("#{col_sep}#{qc}").size + content.scan("#{qc}#{col_sep}").size)
+            total   = limits + outside + inside
+            total = 0 if (total % 2) != 0
+            total
           end
           { row_sep: row_sep, col_sep: col_sep, quote_char: quote_char }
         end
@@ -254,6 +261,10 @@ module Desmond
           # return to caller
           @writer.write(tmp)
           written + tmp
+        end
+
+        def flush
+          @writer.flush
         end
 
         ##
