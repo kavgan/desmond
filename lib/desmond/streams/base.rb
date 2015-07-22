@@ -107,14 +107,20 @@ module Desmond
         @reader = Zlib::GzipReader.new(@reader_obj)
       end
       def read(*args) # ignoring any argument for now
-        t = @reader.read
+        t = @reader.read(4096)
         return nil if t.nil? || t.empty?
         t
+      end
+      def gets
+        @reader.gets
+      end
+      def rewind
+        @reader_obj.rewind
+        @reader = Zlib::GzipReader.new(@reader_obj)
       end
       def eof?
         @reader.eof?
       end
-
       def close
         @reader.close
       end
