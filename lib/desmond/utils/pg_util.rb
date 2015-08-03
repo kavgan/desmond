@@ -119,9 +119,9 @@ module Desmond
     #
     def self.get_escaped_table_name(db_options, schema_name, table_name)
       adapter = self.get_database_adapter(db_options)
-      if adapter == 'postgresql'
+      if adapter == 'postgresql' && !db_options[:with_schema]
         get_escaped_table_name_pg(table_name)
-      elsif adapter == 'redshift'
+      elsif adapter == 'redshift' || db_options[:with_schema]
         get_escaped_table_name_rs(schema_name, table_name)
       else
         fail ArgumentError, "Unknown database adapter '#{adapter}'"
