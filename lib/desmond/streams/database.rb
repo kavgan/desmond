@@ -73,7 +73,7 @@ module Desmond
         end
 
         def close
-          self.execute(@closeq)
+          self.execute(@closeq) if @init_cursor
           DesmondConfig.logger.info "database time: #{@dbtime}, #{@dbcalls}"
         end
 
