@@ -82,6 +82,8 @@ module Desmond
           @aws = AWS::S3.new(@options)
           # create empty s3 object and get writer to it
           @o, @thread, @writer = recreate
+          @s3time = 0.0
+          @s3calls = 0
         end
 
         ##
@@ -95,7 +97,10 @@ module Desmond
         # write the given data to the underlying S3 object
         #
         def write(data)
+          start_time = Time.now
           @writer.write(data)
+          @s3time += Time.now - start_time
+          @s3calls += 1
         end
 
         ##
@@ -104,6 +109,7 @@ module Desmond
         def close
           @writer.close
           @thread.join
+          DesmondConfig.logger.info "S3 write time: #{@s3time}, #{@s3calls}"
         end
 
         private

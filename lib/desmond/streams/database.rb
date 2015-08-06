@@ -34,6 +34,8 @@ module Desmond
           @init_cursor = false
           @buff = nil
           @keys = nil
+          @dbtime = 0.0
+          @dbcalls = 0
         end
 
         ##
@@ -57,10 +59,13 @@ module Desmond
             return tmp
           end
 
+          start_time = Time.now
           tmp = self.execute(@fetchq).map do |h|
             @keys = h.keys
             h.values
           end.to_a
+          @dbtime += Time.now - start_time
+          @dbcalls += 1
 
           @eof = true if tmp.empty?
           yield(tmp) if block_given?
@@ -69,6 +74,7 @@ module Desmond
 
         def close
           self.execute(@closeq)
+          DesmondConfig.logger.info "database time: #{@dbtime}, #{@dbcalls}"
         end
 
         def eof?
@@ -79,7 +85,9 @@ module Desmond
 
         def init_cursor
           @init_cursor = true
+          start_time = Time.now
           self.execute(@initq)
+          @dbtime += Time.now - start_time
         end
 
         def execute(_sql)
