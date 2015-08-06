@@ -74,7 +74,7 @@ module Desmond
 
         def close
           self.execute(@closeq) if @init_cursor
-          DesmondConfig.logger.info "database time: #{@dbtime}, #{@dbcalls}"
+          DesmondConfig.logger.info "database time: #{@dbtime}, #{@dbcalls}" unless DesmondConfig.logger.nil?
         end
 
         def eof?

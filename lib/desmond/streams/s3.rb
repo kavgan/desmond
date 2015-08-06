@@ -109,7 +109,7 @@ module Desmond
         def close
           @writer.close
           @thread.join
-          DesmondConfig.logger.info "S3 write time: #{@s3time}, #{@s3calls}"
+          DesmondConfig.logger.info "S3 write time: #{@s3time}, #{@s3calls}" unless DesmondConfig.logger.nil?
         end
 
         private
