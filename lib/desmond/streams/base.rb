@@ -12,11 +12,17 @@ module Desmond
       # gets sent to the +writer+.
       #
       def self.pipe(reader, writer)
+        readtime, writetime = 0.0, 0.0
         until reader.eof?
+          start_time = Time.now
           data = reader.read
+          readtime += Time.now - start_time
           data = yield(data) if block_given?
+          start_time = Time.now
           writer.write(data)
+          writetime += Time.now - start_time
         end
+        DesmondConfig.logger.info "Pipe time: read #{readtime}, write #{writetime}" unless DesmondConfig.logger.nil?
       end
     end
     ##
@@ -135,6 +141,10 @@ module Desmond
 
       def write(data)
         fail NotImplementedError
+      end
+
+      def <<(data)
+        self.write(data)
       end
 
       def close

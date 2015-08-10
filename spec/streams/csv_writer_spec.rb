@@ -17,7 +17,7 @@ describe Desmond::Streams::CSV::CSVWriter do
     @writer.write(['a', 'b'])
     @writer.write(['c', 'd'])
     expect(@writer.headers).to eq(['a', 'b'])
-    expect(@str_writer.string).to eq("c,d\n")
+    expect(@str_writer.string).to eq("a,b\nc,d\n")
   end
 
   it 'should parse and return headers' do

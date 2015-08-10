@@ -44,6 +44,13 @@ module Desmond
           options
         end
 
+        def get_ruby_csv_options(options={})
+          if options.has_key?(:return_headers)
+            options = options.merge(write_headers: options[:return_headers])
+          end
+          options
+        end
+
         def default_csv_options
           {
             col_sep: ',',
@@ -212,6 +219,13 @@ module Desmond
           @options = self.get_csv_options(options)
           @headers = @options[:headers]
           @options.delete(:skip_rows) # not supported by writer anyways
+          @csv_add_time = 0.0
+          @csv_add_calls = 0.0
+          @csv = ::CSV.new(@writer, self.get_ruby_csv_options(@options))
+        end
+
+        def headers
+          @csv.headers
         end
 
         ##
@@ -221,46 +235,17 @@ module Desmond
         #
         def write(row)
           fail 'Expecting an array' unless row.is_a?(Array)
-          written = ''
 
-          # check if we need to parse the headers
-          if @options[:headers] == :first_row
-            @headers = @options[:headers] = row
-            return ''
+          if row.size > 0 && row[0].is_a?(Enumerable)
+            return row.map { |tmp_row| self.write(tmp_row) }
+          elsif row.size > 0
+            start_time_2 = Time.now
+            @csv << row
+            @csv_add_time += Time.now - start_time_2
+            @csv_add_calls += 1
+          else
+            return nil
           end
-
-          # check if we need to generate a header line
-          if @options[:return_headers] && @options[:headers]
-            @options[:return_headers] = false
-            if @options[:headers] == :first_row
-              #p "CSVWriter headers first_row: #{row}"
-              hdr_line = ::CSV.generate_line(row, @options)
-            else
-              hdr_line = ::CSV.generate_line(@options[:headers], @options)
-            end
-            @writer.write(hdr_line)
-            written += hdr_line
-            if @options[:headers] == :first_row
-              @options[:headers] = row
-              return written
-            end
-          end
-
-          # generate new row
-          tmp = ::CSV.generate(@options) do |csv|
-            # did we get an array of rows or just one row?
-            if row.size > 0 && row[0].is_a?(Enumerable)
-              return row.map { |tmp_row| self.write(tmp_row) }
-            elsif row.size > 0
-              csv << row
-            else
-              return nil
-            end
-          end
-
-          # return to caller
-          @writer.write(tmp)
-          written + tmp
         end
 
         def flush
@@ -272,6 +257,7 @@ module Desmond
         #
         def close
           @writer.close
+          DesmondConfig.logger.info "CSV add time: #{@csv_add_time}, #{@csv_add_calls}" unless DesmondConfig.logger.nil?
         end
       end
     end
