@@ -12,7 +12,7 @@ require_relative '../lib/desmond'
 # set_daemon really early, so it true as early as possible
 DesmondConfig.send :set_daemon
 current_dir = Dir.pwd
-options = { monitor: true, backtrace: true, log_dir: File.join(current_dir, 'log/') }
+options = { backtrace: true, log_dir: File.join(current_dir, 'log/') }
 options = options.merge(dir_mode: :normal, dir: ARGV[1]) if ARGV.size > 1
 Daemons.run_proc("desmond_for_#{DesmondConfig.app_id}", options) do
   Dir.chdir(current_dir)
