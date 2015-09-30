@@ -76,7 +76,12 @@ module Desmond
       end
 
       def read(*args) # ignoring any argument for now
-        return @reader_obj.gets(@options[:newline])
+        next_line = @reader_obj.gets(@options[:newline])
+        if !next_line.nil? && @options[:newline] == "\n" && next_line.ends_with?("\r\n")
+          # spark likes to write the header with a different line separator, oh what a joy :)
+          next_line = next_line.strip + "\n"
+        end
+        return next_line
       end
 
       def eof?

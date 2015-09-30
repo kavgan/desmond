@@ -53,13 +53,20 @@ module Desmond
         private
 
         def recreate
-          o = @aws.buckets[@bucket].objects[@key]
-          fail "#{@bucket}/#{@key} does not exist!" unless o.exists?
+          if @aws.buckets[@bucket].objects[@key + '_$folder$'].exists?
+            o = @aws.buckets[@bucket].objects.with_prefix(@key + '/')
+          else
+            fail "#{@bucket}/#{@key} does not exist!" unless @aws.buckets[@bucket].objects[@key].exists?
+            o = [ @aws.buckets[@bucket].objects[@key] ]
+          end
+          fail "#{@bucket}/#{@key} does not exist!" if o.blank?
           # no other way to stream from S3 unfortunately ...
           reader, writer = IO.pipe
           Thread.new do
             begin
-              o.read { |chunk| writer.write chunk }
+              for t in o
+                t.read { |chunk| writer.write chunk }
+              end
             ensure
               writer.close
             end
