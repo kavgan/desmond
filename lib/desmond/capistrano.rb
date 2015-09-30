@@ -1,6 +1,6 @@
 namespace :desmond do
   def pid_dir
-    fetch(:pid_dir, "#{fetch(:shared_path)}/pids")
+    fetch(:pid_dir, "#{fetch(:release_path)}/tmp/pids")
   end
 
   def cmd(cmd)
