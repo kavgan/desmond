@@ -39,6 +39,4 @@ namespace :desmond do
       end
     end
   end
-
-  after 'deploy:finished' , 'desmond:restart'
 end
