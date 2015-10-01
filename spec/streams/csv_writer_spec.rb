@@ -33,7 +33,7 @@ describe Desmond::Streams::CSV::CSVWriter do
     @writer.write(['a', 'b'])
     @writer.write(['c', 'd'])
     expect(@writer.headers).to eq(['x', 'y'])
-    expect(@str_writer.string).to eq("a,b\nc,d\n")
+    expect(@str_writer.string).to eq("x,y\na,b\nc,d\n")
   end
 
   it 'should parse and return headers' do
@@ -42,6 +42,14 @@ describe Desmond::Streams::CSV::CSVWriter do
     @writer.write(['c', 'd'])
     expect(@writer.headers).to eq(['x', 'y'])
     expect(@str_writer.string).to eq("x,y\na,b\nc,d\n")
+  end
+
+  it 'should parse and return headers' do
+    @writer = Desmond::Streams::CSV::CSVWriter.new(@str_writer, headers: :first_row, return_headers: false)
+    @writer.write(['x', 'y'])
+    @writer.write(['a', 'b'])
+    @writer.write(['c', 'd'])
+    expect(@str_writer.string).to eq("a,b\nc,d\n")
   end
 
   it 'should support custom column separators' do

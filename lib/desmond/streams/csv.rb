@@ -59,7 +59,7 @@ module Desmond
             force_quotes: false,
             skip_blanks: false,
             headers: false,
-            return_headers: false,
+            return_headers: self.is_a?(CSVWriter) ? true : false,
             skip_rows: 0
           }
         end
@@ -239,6 +239,12 @@ module Desmond
           if row.size > 0 && row[0].is_a?(Enumerable)
             return row.map { |tmp_row| self.write(tmp_row) }
           elsif row.size > 0
+            # Ruby's CSV always returns the headers if :first_row is specified, circumventing that
+            if @headers == :first_row && @options[:return_headers] == false
+              @csv = ::CSV.new(@writer, self.get_ruby_csv_options(@options).merge(headers: row))
+              @headers = row
+              return
+            end
             start_time_2 = Time.now
             @csv << row
             @csv_add_time += Time.now - start_time_2

@@ -37,7 +37,7 @@ module Desmond
     #
     def self.enqueue(job_id, user_id, options={})
       job_id, user_id, options = argument_validation(job_id, user_id, options)
-      job_run_id = create_job_run(job_id, user_id)
+      job_run_id = create_job_run(job_id, user_id, nil)
       # the run_id is passed in as an option, because in the synchronous job execution mode, the created job instance
       # is returned after the job was executed, so no JobRun instance would be accessible during execution of the job.
       # the async option differentiates between enqueue in sync mode mode and self.run in sync mode
@@ -104,7 +104,7 @@ module Desmond
     #
     def self.run_persisted(job_id, user_id, options={})
       job_id, user_id, options = argument_validation(job_id, user_id, options)
-      job_run_id = create_job_run(job_id, user_id)
+      job_run_id = create_job_run(job_id, user_id, nil)
       return self.run(job_id, user_id, options.merge(_run_id: job_run_id))
     end
 
@@ -159,8 +159,15 @@ module Desmond
     #
     def run(job_id, user_id, options={})
       # this is the first time we are in the job instance, so we'll save some important stuff we need
-      options.delete(:_enqueue) # internal we don't need anymore, when we arrived here
-      @run_id  = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
+      # good that Que ensures different behavior is encountered in different modes :) ... NOT
+      if DesmondConfig.environment == :test
+        options.delete(:_enqueue) # internal we don't need anymore, when we arrived here
+        @run_id  = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
+      else
+      # this have to strings, since the options come from the database! After this block we'll have them symbolized!
+        options.delete('_enqueue') # internal we don't need anymore, when we arrived here
+        @run_id  = options.delete('_run_id') # retrieve run_id from options and safe it in the instance
+      end
       @sync    = self.run_id.nil?
       @job_id  = job_id
       @user_id = user_id
@@ -249,12 +256,12 @@ module Desmond
     # returning its id.
     # if +persist+ is false, the instance is returned.
     #
-    def self.create_job_run(job_id, user_id, persist: true, result: nil)
+    def self.create_job_run(job_id, user_id, status, persist: true, result: nil)
       attributes = {
         job_id: job_id,
         job_class: self.name,
         user_id: user_id,
-        status: 'queued',
+        status: (status.nil? ? 'queued' : (status == true ? 'done' : 'failed')),
         queued_at: Time.now,
         details: {
           _job_result: result
@@ -273,7 +280,7 @@ module Desmond
     #
     def job_run
       if @sync
-        self.class.create_job_run(@job_id, @user_id, persist: false, result: @result)
+        self.class.create_job_run(@job_id, @user_id, @done, persist: false, result: @result)
       else
         Desmond::JobRun.find(self.run_id)
       end

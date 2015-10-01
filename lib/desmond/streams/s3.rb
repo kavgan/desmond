@@ -54,7 +54,7 @@ module Desmond
 
         def recreate
           if @aws.buckets[@bucket].objects[@key + '_$folder$'].exists?
-            o = @aws.buckets[@bucket].objects.with_prefix(@key + '/')
+            o = @aws.buckets[@bucket].objects.with_prefix(@key + '/part')
           else
             fail "#{@bucket}/#{@key} does not exist!" unless @aws.buckets[@bucket].objects[@key].exists?
             o = [ @aws.buckets[@bucket].objects[@key] ]
