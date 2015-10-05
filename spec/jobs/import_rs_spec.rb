@@ -35,6 +35,8 @@ describe Desmond::ImportJob do
       #fail run.error if run.failed?
     ensure
       s3_obj.delete unless s3_obj.nil?
+      rewrite_s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name + 'rewrite']
+      rewrite_s3_obj.delete if rewrite_s3_obj.exists?
     end
     return run, unique_name
   end

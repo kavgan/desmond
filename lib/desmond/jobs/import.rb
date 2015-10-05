@@ -169,6 +169,9 @@ module Desmond
     def rewrite_weird_newlines(s3_bucket, s3_key, csv_reader, options={})
       s3_key_ext = File.extname(s3_key)
       new_s3_key = File.join(File.dirname(s3_key), File.basename(s3_key, s3_key_ext) + 'rewrite' + s3_key_ext)
+      if new_s3_key.starts_with?('./')
+        new_s3_key = new_s3_key[2..-1]
+      end
       csv_writer = Streams::CSV::CSVWriter.new(
         Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3]),
         options.fetch(:csv).merge(row_sep: SAFE_ROW_SEP)
