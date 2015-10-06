@@ -122,7 +122,7 @@ module Desmond
         return nil if t.nil? || t.empty?
         t
       end
-      def gets
+      def gets(*args) # ignoring any argument for now
         @reader.gets
       end
       def rewind
