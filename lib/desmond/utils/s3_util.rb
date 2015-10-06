@@ -1,0 +1,73 @@
+class S3Util
+  MAX_COPY_SIZE = 5368709120 # AWS S3 default of 5MB (min multipart upload part size)
+
+  ##
+  # merges a folder of S3 objects into one single object
+  #
+  def self.merge_objects(src_bucket, src_prefix, dest_bucket, dest_key)
+    s3 = AWS::S3.new
+    src_bucket  = s3.buckets[src_bucket]
+    dest_bucket = s3.buckets[dest_bucket]
+
+    # calcluate total size to determine how to merge
+    total_size = 0
+    src_bucket.objects.with_prefix(src_prefix).each do |source_object|
+      total_size += source_object.content_length
+    end
+
+    # do the merge
+    if total_size <= AWS.config.s3_multipart_min_part_size
+      __merge_objects_normal(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
+    else
+      __merge_objects_multipart(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
+    end
+  end
+
+  ##
+  # strategy: the total size of all source objects is rather small (< 5MB), so we download them all
+  #           and reupload them allat once concatenated
+  #
+  def self.__merge_objects_normal(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
+    written = false
+    dest_bucket.objects[dest_key].write(estimated_content_length: total_size) do |buffer, bytes|
+      unless written # after we've written all files once, we're done and just want to return
+        src_bucket.objects.with_prefix(src_prefix).each do |source_object|
+          buffer.write(source_object.read)
+        end
+        written = true
+      end
+    end
+    return dest_bucket.objects[dest_key]
+  end
+  private_class_method :__merge_objects_normal
+
+  ##
+  # strategy: the total size of all source object can be large (> 5MB), so we tell S3 to copy them
+  #           without ever downloading them.
+  #
+  def self.__merge_objects_multipart(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
+    # First, let's start the Multipart Upload
+    obj_aggregate = dest_bucket.objects[dest_key].multipart_upload
+    # Then we will copy into the Multipart Upload all of the objects in a certain S3 directory.
+    src_bucket.objects.with_prefix(src_prefix).each do |source_object|
+      # Skip the directory object
+      unless (source_object.key == ARGV[1])
+        # Note that this section is thread-safe and could greatly benefit from parallel execution.
+        source_length = source_object.content_length
+        next if source_length == 0
+        next if source_object.key.end_with?('.gz') && source_length == 20 # empty gzip file
+        pos = 0
+        part_size = self.MAX_COPY_SIZE
+        until pos >= source_length
+          last_byte = (pos + part_size >= source_length) ? source_length - 1 : pos + part_size - 1
+          #p "copying #{source_object.key}: #{pos} - #{last_byte} => #{last_byte - pos} bytes"
+          obj_aggregate.copy_part(source_object.bucket.name + '/' + source_object.key,
+            copy_source_range: "bytes=#{pos}-#{last_byte}")
+          pos += part_size
+        end
+      end
+    end
+    return obj_completed = obj_aggregate.complete()
+  end
+  private_class_method :__merge_objects_multipart
+end

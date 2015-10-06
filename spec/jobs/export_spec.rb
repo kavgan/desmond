@@ -7,7 +7,7 @@ describe Desmond::ExportJob do
   #
   def run_export_test(options={})
     Desmond::ExportJob.test('UserId', {
-        connection_id: 'test',
+        connection_id: 'redshift_test',
         query: "SELECT * FROM exportdata;"
       }.deep_merge(options)
     )
@@ -19,7 +19,7 @@ describe Desmond::ExportJob do
   def run_export(options={})
     run = Desmond::ExportJob.enqueue('JobId', 'UserId', {
         db: {
-          connection_id: 'test',
+          connection_id: 'redshift_test',
           query: "SELECT * FROM exportdata;"
         },
         s3: {
@@ -45,36 +45,36 @@ describe Desmond::ExportJob do
     ensure
       s3_obj.delete
     end
-    csv
+    csv.split("\n")
   end
 
   before(:context) do
-    c = ActiveRecord::Base.connection
-    c.execute("DROP TABLE IF EXISTS exportdata")
-    c.execute("CREATE TABLE exportdata(id INT, txt VARCHAR)")
-    c.execute("INSERT INTO exportdata VALUES(0, 'null')")
-    c.execute("INSERT INTO exportdata VALUES(1, 'eins')")
+    c = Desmond::PGUtil.dedicated_connection(connection_id: 'redshift_test')
+    c.exec("DROP TABLE IF EXISTS exportdata")
+    c.exec("CREATE TABLE exportdata(id INT, txt VARCHAR)")
+    c.exec("INSERT INTO exportdata VALUES(0, 'null')")
+    c.exec("INSERT INTO exportdata VALUES(1, 'eins')")
   end
 
   it 'should export to pipe-delimited csv' do
     expect(run_export_and_return_string(csv: {
         col_sep: '|',
         return_headers: false
-    })).to eq("0|null\n1|eins\n")
+    })).to match_array(['0|null', '1|eins'])
   end
 
   it 'should export to comma-delimited csv' do
     expect(run_export_and_return_string(csv: {
         col_sep: ',',
         return_headers: false
-    })).to eq("0,null\n1,eins\n")
+    })).to match_array(['0,null', '1,eins'])
   end
 
   it 'should export to comma-delimited csv with header row' do
     expect(run_export_and_return_string(csv: {
         col_sep: ',',
         return_headers: true
-    })).to eq("id,txt\n0,null\n1,eins\n")
+    })).to match_array(['id,txt', '0,null', '1,eins'])
   end
 
   it 'should save the s3 details of the exported file' do
@@ -104,30 +104,6 @@ describe Desmond::ExportJob do
     expect(run.result).to have_key('access_key')
   end
 
-  it 'should not matter what value fetch_size has' do
-    export_small_fs = run_export_and_return_string(csv: {
-        col_sep: ',',
-        return_headers: false
-      }, db: {
-        fetch_size: 1
-      })
-    export_big_fs = run_export_and_return_string(csv: {
-        col_sep: ',',
-        return_headers: false
-      }, db: {
-        fetch_size: 1000000
-      })
-    expect(export_small_fs).to eq(export_big_fs)
-  end
-
-  it 'should complain about invalid fetch_size\'s' do
-    run = run_export(db: {
-      fetch_size: 0
-    })
-    expect(run.failed?).to eq(true)
-    expect(run.error).to eq('"fetch_size" needs to be greater than 0')
-  end
-
   it 'should complain about invalid database configuration' do
     r = run_export(db: { connection_id: nil })
     expect(r.failed?).to eq(true)
@@ -154,7 +130,8 @@ describe Desmond::ExportJob do
   end
 
   it 'should be able to return test data' do
-    expect(run_export_test).to eq({columns: ['id', 'txt'], rows: [['0', 'null'], ['1', 'eins']]})
+    expect(run_export_test[:columns]).to eq(['id', 'txt'])
+    expect(run_export_test[:rows]).to match_array([['0', 'null'], ['1', 'eins']])
   end
 
   it 'should complain if query is missing' do

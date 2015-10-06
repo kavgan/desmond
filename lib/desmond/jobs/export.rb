@@ -4,7 +4,7 @@ TIMEOUT = 5 # default connection timeout to database
 
 module Desmond
   ##
-  # job exporting data out of PostgreSQL compatible databases (e.g. AWS RedShift) into S3
+  # job exporting data out of AWS RedShift into S3
   #
   # Please see `BaseJob` class documentation on how to run
   # any job using its general interface.
@@ -77,48 +77,58 @@ module Desmond
     #   - everything supported by AWS::S3.new
     # - csv (see ruby's CSV documentation)
     #   - col_sep
-    #   - row_sep
-    #   - headers
     #   - return_headers
     #   - quote_char
     #
-    def execute(job_id, user_id, options={})
-      job_run_filename = job_run.filename
-      time = job_run.queued_at.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-      export_id = "#{DesmondConfig.app_id}_export_#{job_id}_#{user_id}_#{time}"
+    def execute
       # check options
-      fail 'No database options!' if options[:db].nil?
-      fail 'No s3 options!' if options[:s3].nil?
+      fail ArgumentError, 'No database options!' if options[:db].nil?
+      fail ArgumentError, 'No s3 options!' if options[:s3].nil?
       s3_bucket = options[:s3][:bucket]
-      s3_key = options[:s3][:key] || job_run_filename
-      fail 'No S3 export bucket!' if s3_bucket.nil? || s3_bucket.empty?
+      s3_key = options[:s3][:key] || job_run.filename
+      s3_key_parallel_unload = "#{s3_key}/"
+      fail ArgumentError, 'No S3 export bucket!' if s3_bucket.nil? || s3_bucket.empty?
 
-      csv_reader = nil
-      begin
-        # csv reader, transforms database rows to csv
-        db_reader = Streams::Database::PGCursorReader.new(
-          export_id,
-          options[:db][:query],
-          {
-            fetch_size: FETCH_SIZE,
-            timeout: TIMEOUT
-          }.deep_merge(options.fetch(:db, {}))
-        )
+      raw_query = self.options[:db][:query].strip
+      raw_query = raw_query[0..-2] if raw_query.end_with?(';')
+      fail ArgumentError, "Can't use query separator!" unless raw_query.index(';').nil?
+      unload_query  = "select * from (#{raw_query})"
+      headers_query = "select * from (#{raw_query}) limit 0" # this is valid in PG & Redshift and won't use any resources compared to limit 1
+      s3 = AWS::S3.new(options[:s3])
+      col_sep = self.options.fetch(:csv, {})[:col_sep] || '|'
 
-        # stream write to S3 from csv writer
+      # do a parallel unload of all the data
+      UnloadJob.run(self.job_id, self.user_id, {
+        db: self.options[:db].merge({ query: unload_query }),
+        s3: self.options[:s3].merge({ prefix: s3_key_parallel_unload }),
+        unload: {
+          nomanifest: true,
+          gzip: false,
+          delimiter: col_sep,
+          null_as: ''
+        }
+      })
 
-        csv_writer = Streams::CSV::CSVWriter.new(
-          Streams::S3::S3Writer.new(s3_bucket, s3_key, options[:s3]),
-          { headers: db_reader.columns }.merge(options.fetch(:csv, {}))
-        )
-        Streams::Utils.pipe(db_reader, csv_writer)
-      ensure
-        db_reader.close unless db_reader.nil?
-        csv_writer.close unless csv_writer.nil?
+
+      # deal with headers separatly if requested
+      if options.fetch(:csv, {})[:return_headers]
+        # get the headers of the query
+        rs_conn = PGUtil.dedicated_connection(self.options[:db])
+        headers = rs_conn.exec(headers_query).try(:fields)
+        # write headers to S3 file to be merged
+        s3.buckets[s3_bucket].objects.create(s3_key_parallel_unload + '00000__headers',
+          headers.join(col_sep) + "\n")
       end
+
+      # merge the parallel unloaded files on the S3 server
+      S3Util.merge_objects(s3_bucket, s3_key_parallel_unload, s3_bucket, s3_key)
+      # delete the parallel unloaded files
+      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all
 
       # everything is done
       { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
+    ensure
+      rs_conn.close unless rs_conn.nil?
     end
 
     def self.database_reader(id, query, options)

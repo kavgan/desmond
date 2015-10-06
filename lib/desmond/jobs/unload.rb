@@ -31,6 +31,8 @@ module Desmond
     #   - addquotes: if true, will use the REMOVEQUOTES unload option
     #   - escape: if true, will use the ESCAPE unload option
     #   - null_as: string to use for the NULL AS unload option
+    #   - delimiter: char to use as column delimiter
+    #   - no_manifest: if true, will not write a manifest
     #
     def execute(job_id, user_id, options={})
       fail 'No database options!' if options[:db].nil?
@@ -43,14 +45,15 @@ module Desmond
       fail 'Empty prefix name!' if prefix.nil? || prefix.empty?
 
       # s3 credentials for the bucket to unload to
-      access_key = options[:s3][:access_key_id]
+      access_key = options[:s3][:access_key_id] || AWS.config.access_key_id
       fail 'Empty access key!' if access_key.nil? || access_key.empty?
-      secret_key = options[:s3][:secret_access_key]
+      secret_key = options[:s3][:secret_access_key] || AWS.config.secret_access_key
       fail 'Empty secret key!' if secret_key.nil? || secret_key.empty?
 
       # construct full escaped table name
       query = options[:db][:query]
       fail 'Empty query!' if query.nil? || query.empty?
+      fail 'Unsupported delimiter' if !options[:unload][:escape].nil? && (['|', ','].include?(options[:unload][:escape].to_s))
 
       # execute UNLOAD sql
       bucket = PGUtil.escape_string(bucket)
@@ -60,10 +63,12 @@ module Desmond
       query = PGUtil.escape_string(query)
       unload_options = ''
       unless options[:unload].nil? || options[:unload].empty?
-        unload_options += 'ALLOWOVERWRITE' if options[:unload][:allowoverwrite]
+        unload_options += ' MANIFEST' unless options[:unload][:nomanifest]
+        unload_options += ' ALLOWOVERWRITE' if options[:unload][:allowoverwrite]
         unload_options += ' GZIP' if options[:unload][:gzip]
         unload_options += ' ADDQUOTES' if options[:unload][:addquotes]
         unload_options += ' ESCAPE' if options[:unload][:escape]
+        unload_options += " DELIMITER '#{options[:unload][:delimiter].to_s}'" unless options[:unload][:delimiter].nil?
         unless options[:unload][:null_as].nil?
           unload_options += " NULL AS '#{PGUtil.escape_string(options[:unload][:null_as])}'"
         end
@@ -72,7 +77,7 @@ module Desmond
           UNLOAD ('#{query}')
           TO 's3://#{bucket}/#{prefix}'
           CREDENTIALS 'aws_access_key_id=#{access_key};aws_secret_access_key=#{secret_key}'
-          MANIFEST #{unload_options};
+          #{unload_options};
       SQL
       conn = PGUtil.dedicated_connection(options[:db])
       conn.exec(unload_sql)

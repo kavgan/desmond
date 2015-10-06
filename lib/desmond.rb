@@ -6,6 +6,7 @@ require 'active_support/hash_with_indifferent_access'
 
 require_relative 'desmond/monkey_patches'
 require_relative 'desmond/utils/pg_util'
+require_relative 'desmond/utils/s3_util'
 require_relative 'desmond/utils/log_censor'
 
 require_relative 'desmond/execution_error'
