@@ -44,6 +44,7 @@ module Desmond
     #   - headers
     #   - return_headers
     #   - skip_rows
+    #   - null_as (only for importing into redshift)
     #
     def execute(job_id, user_id, options={})
       fail 'No database options!' if options[:db].nil?
@@ -126,6 +127,11 @@ module Desmond
       csv_quote_char = PGUtil.escape_string(array_reader.options[:quote_char])
       skip_rows = 1 if options.fetch(:csv, {})[:headers].try(:to_sym) == :first_row
       skip_rows = options.fetch(:csv, {})[:skip_rows].to_i if options.fetch(:csv, {}).has_key?(:skip_rows)
+      if options.fetch(:csv, {}).has_key?(:null_as)
+        null_as = PGUtil.escape_string(options.fetch(:csv, {})[:null_as])
+      else
+        null_as = ''
+      end
       copy_sql = <<-SQL
         COPY #{table_name}(#{copy_columns})
         FROM 's3://#{s3_bucket}/#{s3_key}'
@@ -134,6 +140,7 @@ module Desmond
         CSV
         QUOTE '#{csv_quote_char}'
         DELIMITER '#{csv_col_sep}'
+        NULL AS '#{null_as}'
         #{(skip_rows) ? " IGNOREHEADER #{skip_rows}" : ''}
         ;
       SQL
@@ -151,10 +158,16 @@ module Desmond
         PGUtil.escape_identifier(header)
       end.join(', ')
       placeholders = placeholders.join(', ')
+      if options.fetch(:csv, {}).has_key?(:null_as)
+        null_as = PGUtil.escape_string(options.fetch(:csv, {})[:null_as])
+      else
+        null_as = ''
+      end
       conn.prepare(statement_name, "insert into #{table_name} (#{insert_columns}) values (#{placeholders})")
       while !array_reader.eof?
         row = array_reader.read
         fail ArgumentError, "wrong number of columns. found #{row.size}, expected: #{headers.size}" if row.size != headers.size
+        row.map! { |column| (column == null_as) ? nil : column }
         conn.exec_prepared(statement_name, row)
       end
     ensure
