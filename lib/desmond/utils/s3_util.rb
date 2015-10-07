@@ -73,6 +73,7 @@ class S3Util
   def self.__prepare_objects_for_multipart(src_bucket, src_prefix)
     objects = src_bucket.objects.with_prefix(src_prefix).to_a
     for i in 0..objects.count
+      next if objects[i].content_length == 0
       if i < (objects.count - 1) && objects[i].content_length < AWS.config.s3_multipart_min_part_size
         object1 = objects[i]
         object2 = objects[i + 1]
@@ -95,7 +96,9 @@ class S3Util
     dest_bucket.objects[dest_key].write(estimated_content_length: total_size) do |buffer, bytes|
       unless written # after we've written all files once, we're done and just want to return
         src_objects.each do |source_object|
-          buffer.write(source_object.read)
+          source_object.read do |chunk|
+            buffer.write(chunk)
+          end
         end
         written = true
       end
