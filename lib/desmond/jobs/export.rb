@@ -97,6 +97,8 @@ module Desmond
       s3 = AWS::S3.new(options[:s3])
       col_sep = self.options.fetch(:csv, {})[:col_sep] || '|'
 
+      # TODO SQL errors shouldn't send exception emails
+
       # do a parallel unload of all the data
       UnloadJob.run(self.job_id, self.user_id, {
         db: self.options[:db].merge({ query: unload_query }),
@@ -122,13 +124,13 @@ module Desmond
 
       # merge the parallel unloaded files on the S3 server
       S3Util.merge_objects(s3_bucket, s3_key_parallel_unload, s3_bucket, s3_key)
-      # delete the parallel unloaded files
-      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all
 
       # everything is done
       { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
     ensure
       rs_conn.close unless rs_conn.nil?
+      # delete the parallel unloaded files
+      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all
     end
 
     def self.database_reader(id, query, options)
