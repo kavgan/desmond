@@ -84,6 +84,13 @@ describe Desmond::ImportJob do
         ])
   end
 
+  it 'should import with null as options' do
+    expect(run_import_and_return_rows('spec/import_comma.csv', csv: { null_as: 'null' })).to match_array([
+          { "id" => '0', "txt" => nil }, # PG always returns strings,
+          { "id" => '1', "txt" => "eins" } # if it is the right value and didn't fail, we assume it worked
+        ])
+  end
+
   it 'should drop existing tables on import' do
     fixed_table_name = "desmond_test_#{rand(1024)}"
     run_import_and_return_rows('spec/import_comma.csv', db: { table: fixed_table_name }, donotdeletetable: true)
