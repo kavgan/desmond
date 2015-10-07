@@ -99,6 +99,8 @@ class S3Util
       end
     end
     return dest_bucket.objects[dest_key]
+  ensure
+    writer.close unless writer.nil?
   end
   private_class_method :__merge_objects_normal_internal
 end
