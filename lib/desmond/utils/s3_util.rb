@@ -72,7 +72,7 @@ class S3Util
   #
   def self.__prepare_objects_for_multipart(src_bucket, src_prefix)
     objects = src_bucket.objects.with_prefix(src_prefix).to_a
-    for i in 0..objects.count
+    for i in 0...objects.count
       next if objects[i].content_length == 0
       if i < (objects.count - 1) && objects[i].content_length < AWS.config.s3_multipart_min_part_size
         object1 = objects[i]
@@ -92,15 +92,10 @@ class S3Util
   # by downloading and reuploading them.
   #
   def self.__merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size)
-    written = false
-    dest_bucket.objects[dest_key].write(estimated_content_length: total_size) do |buffer, bytes|
-      unless written # after we've written all files once, we're done and just want to return
-        src_objects.each do |source_object|
-          source_object.read do |chunk|
-            buffer.write(chunk)
-          end
-        end
-        written = true
+    writer = Desmond::Streams::S3::S3Writer.new(dest_bucket.name, dest_key)
+    src_objects.each do |source_object|
+      source_object.read do |chunk|
+        writer.write(chunk)
       end
     end
     return dest_bucket.objects[dest_key]
