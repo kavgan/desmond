@@ -1,5 +1,6 @@
 module Desmond
   module Streams
+    DEFAULT_BLOCK_SIZE = 4_194_304 # 4 MB
     ##
     # some convenience methods on readers and writers
     #
@@ -118,7 +119,7 @@ module Desmond
         @reader = Zlib::GzipReader.new(@reader_obj)
       end
       def read(*args) # ignoring any argument for now
-        t = @reader.read(4096)
+        t = @reader.read(DEFAULT_BLOCK_SIZE)
         return nil if t.nil? || t.empty?
         t
       end

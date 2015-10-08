@@ -8,13 +8,12 @@ module Desmond
       # All +options+ valid for AWS::S3.new are supported.
       #
       class S3Reader < Streams::Reader
-        DEFAULT_READ_SIZE = 4096
         attr_reader :bucket, :key
 
         def initialize(bucket, key, options={})
           @bucket = bucket
           @key = key
-          @options = { read_size: DEFAULT_READ_SIZE }.merge(options)
+          @options = { read_size: Desmond::Streams::DEFAULT_BLOCK_SIZE }.merge(options)
           @aws = AWS::S3.new(@options)
           @reader = recreate
         end
@@ -133,7 +132,7 @@ module Desmond
                 # aws doesn't seem to have a problem with getting more bytes,
                 # which makes this code simpler
                 while bytes > 0 && !reader.eof?
-                  t = reader.read
+                  t = reader.read(Desmond::Streams::DEFAULT_BLOCK_SIZE)
                   buffer.write(t)
                   bytes -= t.size
                 end
