@@ -1,4 +1,5 @@
 class S3Util
+  MIN_PART_SIZE =     5_242_880 # AWS S3 can take a minimum of 5MB per multipart part
   MAX_COPY_SIZE = 5_368_709_120 # AWS S3 can take a maximum of 5GB per multipart part
 
   ##
@@ -30,6 +31,7 @@ class S3Util
   #           and reupload them allat once concatenated
   #
   def self.__merge_objects_normal(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
+    DesmondConfig.logger.info 'using download copy' unless DesmondConfig.logger.nil?
     return __merge_objects_normal_internal(src_bucket.objects.with_prefix(src_prefix), dest_bucket, dest_key, total_size)
   end
   private_class_method :__merge_objects_normal
@@ -39,30 +41,47 @@ class S3Util
   #           without ever downloading them.
   #
   def self.__merge_objects_multipart(src_bucket, src_prefix, dest_bucket, dest_key, total_size)
-    # premerge objects which might be too small
-    __prepare_objects_for_multipart(src_bucket, src_prefix)
-    # First, let's start the Multipart Upload
-    obj_aggregate = dest_bucket.objects[dest_key].multipart_upload
-    # Then we will copy into the Multipart Upload all of the objects in a certain S3 directory.
-    src_bucket.objects.with_prefix(src_prefix).each do |source_object|
-      # Skip the directory object
-      unless (source_object.key == ARGV[1])
-        # Note that this section is thread-safe and could greatly benefit from parallel execution.
-        source_length = source_object.content_length
-        next if source_length == 0
-        next if source_object.key.end_with?('.gz') && source_length == 20 # empty gzip file
-        pos = 0
-        part_size = self::MAX_COPY_SIZE
-        until pos >= source_length
-          last_byte = (pos + part_size >= source_length) ? source_length - 1 : pos + part_size - 1
-          DesmondConfig.logger.info "copying #{source_object.key}: #{pos} - #{last_byte} => #{last_byte - pos} bytes" unless DesmondConfig.logger.nil?
-          obj_aggregate.copy_part(source_object.bucket.name + '/' + source_object.key,
-            copy_source_range: "bytes=#{pos}-#{last_byte}")
-          pos += part_size
+    DesmondConfig.logger.info 'using multipart copy' unless DesmondConfig.logger.nil?
+    # first, figure out which parts we'll have
+    parts         = []
+    max_part_size = self::MAX_COPY_SIZE
+    num_objects   = src_bucket.objects.with_prefix(src_prefix).count
+    src_bucket.objects.with_prefix(src_prefix).each_with_index do |source_object, i|
+      source_path   = "#{source_object.bucket.name}/#{source_object.key}"
+      source_length = source_object.content_length
+      DesmondConfig.logger.debug "source_path: #{source_path}" unless DesmondConfig.logger.nil?
+      # skip some useless files
+      next if source_length == 0
+      next if source_object.key.end_with?('.gz') && source_length == 20 # empty gzip file
+      pos = 0
+      until pos >= source_length
+        DesmondConfig.logger.debug "pos: #{pos}, source_length: #{source_length}" unless DesmondConfig.logger.nil?
+        # trying to make parts as big as supported
+        last_byte = (pos + max_part_size >= source_length) ? source_length - 1 : pos + max_part_size - 1
+        DesmondConfig.logger.debug "last_byte: #{last_byte}" unless DesmondConfig.logger.nil?
+        # make sure we have at least MIN_PART_SIZE remaining bytes
+        remaining_bytes = source_length - (last_byte + 1)
+        if remaining_bytes > 0 && remaining_bytes < MIN_PART_SIZE
+          last_byte = (source_length - pos) / 2 # if less than MIN_PART_SIZE would be left, make 2 equal parts
         end
+        DesmondConfig.logger.debug "last_byte: #{last_byte}" unless DesmondConfig.logger.nil?
+        parts << { source: source_path, byte_range: "bytes=#{pos}-#{last_byte}", size: (last_byte - pos) }
+        pos = last_byte + 1
       end
     end
-    return obj_completed = obj_aggregate.complete()
+    DesmondConfig.logger.debug "parts: #{parts}" unless DesmondConfig.logger.nil?
+
+    # second, actually do the work in parallel
+    obj_aggregate = dest_bucket.objects[dest_key].multipart_upload
+    threads = parts.map do |part|
+      Thread.new do
+        DesmondConfig.logger.debug "copying #{part[:source]}: #{part[:byte_range]} => #{part[:size]} bytes" unless DesmondConfig.logger.nil?
+        obj_aggregate.copy_part(part[:source], copy_source_range: part[:byte_range])
+      end
+    end
+    DesmondConfig.logger.debug "waiting for copy threads to finish" unless DesmondConfig.logger.nil?
+    threads.each(&:join) # wait for the threads to finish
+    return obj_completed = obj_aggregate.complete
   end
   private_class_method :__merge_objects_multipart
 
