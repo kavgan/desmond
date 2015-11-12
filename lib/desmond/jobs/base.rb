@@ -160,14 +160,10 @@ module Desmond
     def run(job_id, user_id, options={})
       # this is the first time we are in the job instance, so we'll save some important stuff we need
       # good that Que ensures different behavior is encountered in different modes :) ... NOT
-      if DesmondConfig.environment == :test
-        options.delete(:_enqueue) # internal we don't need anymore, when we arrived here
-        @run_id  = options.delete(:_run_id) # retrieve run_id from options and safe it in the instance
-      else
-      # this have to strings, since the options come from the database! After this block we'll have them symbolized!
-        options.delete('_enqueue') # internal we don't need anymore, when we arrived here
-        @run_id  = options.delete('_run_id') # retrieve run_id from options and safe it in the instance
-      end
+      # that's why we need to use an indifferent access hash
+      options  = ActiveSupport::HashWithIndifferentAccess.new(options)
+      options.delete(:_enqueue) # internal we don't need anymore, when we arrived here
+      @run_id  = options.delete(:_run_id) # retrieve run_id from options and save it in the instance
       @sync    = self.run_id.nil?
       @job_id  = job_id
       @user_id = user_id

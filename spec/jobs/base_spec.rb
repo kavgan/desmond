@@ -454,4 +454,22 @@ describe Desmond::BaseJob do
     clazz.enqueue(21, 21)
     expect(clazz.test_counter).to eq(42)
   end
+
+  it 'should set executed_at and completed_at timestamp' do
+    run = new_job.enqueue(1, 1)
+    expect(run.done?).to eq(true)
+    expect(run.executed_at).not_to be(nil)
+    expect(run.completed_at).not_to be(nil)
+  end
+
+  it 'should set executed_at and completed_at timestamp in async mode' do
+    self.async do
+      run = new_job.enqueue(1, 1)
+      self.async_worker
+      run.wait_until_finished
+      expect(run.done?).to eq(true)
+      expect(run.executed_at).not_to be(nil)
+      expect(run.completed_at).not_to be(nil)
+    end
+  end
 end
