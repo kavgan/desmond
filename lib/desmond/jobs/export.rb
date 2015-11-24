@@ -136,7 +136,7 @@ module Desmond
     private
 
     def exception_filter(e)
-      (e <= PG::SyntaxErrorOrAccessRuleViolation)
+      e.is_a?(PG::SyntaxErrorOrAccessRuleViolation)
     end
 
     def self.database_reader(id, query, options)
