@@ -472,4 +472,30 @@ describe Desmond::BaseJob do
       expect(run.completed_at).not_to be(nil)
     end
   end
+
+  it 'should support exception filtering' do
+    clazz = new_job do
+      define_method(:execute) do
+        raise StandardError, 'test'
+      end
+      define_method(:exception_filter) do |exception|
+        false
+      end
+    end
+    expect(DesmondConfig).to receive(:exception_notification)
+    run = clazz.enqueue(1, 1)
+  end
+
+  it 'should support exception filtering' do
+    clazz = new_job do
+      define_method(:execute) do
+        raise StandardError, 'test'
+      end
+      define_method(:exception_filter) do |exception|
+        true
+      end
+    end
+    expect(DesmondConfig).not_to receive(:exception_notification)
+    run = clazz.enqueue(1, 1)
+  end
 end

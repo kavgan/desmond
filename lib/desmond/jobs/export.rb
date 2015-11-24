@@ -133,6 +133,12 @@ module Desmond
       s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all
     end
 
+    private
+
+    def exception_filter(e)
+      (e <= PG::SyntaxErrorOrAccessRuleViolation)
+    end
+
     def self.database_reader(id, query, options)
       fail 'Arguments cannot be nil' if id.nil? || query.nil? || options.nil?
       Streams::Database::PGCursorReader.new(

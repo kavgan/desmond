@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'desmond'
-  s.version     = '0.2.2'
+  s.version     = '0.2.3'
   s.date        = '2015-03-31'
   s.summary     = 'Background tasks & CSV Export/Import'
   s.description = 'Background tasks & Exporting and importing data out of Amazon AWS RedShift'
