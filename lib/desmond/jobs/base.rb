@@ -208,7 +208,7 @@ module Desmond
       # save error
       failed_exception(e)
       # in sync mode we'll raise the error to the caller, so we won't notify subscribers
-      unless @sync || (self.respond_to?(:exception_filter) && self.send(:exception_filter, e))
+      unless @sync || (self.respond_to?(:exception_filter, true) && self.send(:exception_filter, e))
         DesmondConfig.send(:exception_notification, e, self.class, job_run)
       end
       return e # return the exception for synchronous mode

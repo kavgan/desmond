@@ -498,4 +498,18 @@ describe Desmond::BaseJob do
     expect(DesmondConfig).not_to receive(:exception_notification)
     run = clazz.enqueue(1, 1)
   end
+
+  it 'should support exception filtering with private filter' do
+    clazz = new_job do
+      define_method(:execute) do
+        raise StandardError, 'test'
+      end
+      define_method(:exception_filter) do |exception|
+        true
+      end
+      private :exception_filter
+    end
+    expect(DesmondConfig).not_to receive(:exception_notification)
+    run = clazz.enqueue(1, 1)
+  end
 end
