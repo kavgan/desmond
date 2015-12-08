@@ -1,7 +1,3 @@
-FETCH_SIZE = 10000 # default num of rows to be fetched by cursor
-TEST_SIZE = 100 # default num of rows retuned by test
-TIMEOUT = 5 # default connection timeout to database
-
 module Desmond
   ##
   # job exporting data out of AWS RedShift into S3
@@ -27,28 +23,7 @@ module Desmond
     # - timeout: connection timeout to database
     #
     def self.test(user_id, options={})
-      options = ActiveSupport::HashWithIndifferentAccess.new(options)
-      results = nil
-      begin
-        Que.log level: :info, msg: "Starting to test job for user #{user_id}"
-        time = Time.now.utc.strftime('%Y_%m_%dT%H_%M_%S_%LZ')
-        export_id = "#{DesmondConfig.app_id}_validate_#{user_id}_#{time}"
-
-        # read the test rows
-        db_reader = database_reader(export_id, options[:query], { fetch_size: TEST_SIZE }.merge(options))
-        begin
-          results = { columns: db_reader.columns, rows: db_reader.read }
-        ensure
-          db_reader.close
-        end
-      rescue => e
-        Que.log level: :error, msg: e.message
-        Que.log level: :error, msg: e.backtrace.join("\n ")
-        results = { error: e.message }
-      ensure
-        Que.log level: :info, msg: "Done testing job for user #{user_id}"
-      end
-      results
+      PGExportJob.test(user_id, options)
     end
 
     ##
@@ -83,6 +58,9 @@ module Desmond
     def execute
       # check options
       fail ArgumentError, 'No database options!' if options[:db].nil?
+      if PGUtil.get_database_adapter(options[:db]).to_sym == :postgresql
+        return PGExportJob.run(self.job_id, self.user_id, self.options)
+      end
       fail ArgumentError, 'No s3 options!' if options[:s3].nil?
       s3_bucket = options[:s3][:bucket]
       s3_key = options[:s3][:key] || job_run.filename
@@ -130,19 +108,7 @@ module Desmond
     ensure
       rs_conn.close unless rs_conn.nil?
       # delete the parallel unloaded files
-      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all
+      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all unless s3.nil?
     end
-
-    def self.database_reader(id, query, options)
-      fail 'Arguments cannot be nil' if id.nil? || query.nil? || options.nil?
-      Streams::Database::PGCursorReader.new(
-        id,
-        query,
-        {
-          fetch_size: FETCH_SIZE,
-          timeout: TIMEOUT
-        }.merge(options))
-    end
-    private_class_method :database_reader
   end
 end

@@ -6,6 +6,7 @@ module Desmond
       ##
       # reads from S3 using bucket +bucket+ and key +key+.
       # All +options+ valid for AWS::S3.new are supported.
+      # option +:range+ will be forwarded to `s3_obj.read`
       #
       class S3Reader < Streams::Reader
         attr_reader :bucket, :key
@@ -64,7 +65,7 @@ module Desmond
           Thread.new do
             begin
               for t in o
-                t.read { |chunk| writer.write chunk }
+                t.read(self.options.select { |k, _| k == :range }) { |chunk| writer.write(chunk) unless writer.closed? || reader.closed? }
               end
             ensure
               writer.close

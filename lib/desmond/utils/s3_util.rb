@@ -13,6 +13,8 @@ class S3Util
     # calcluate total size to determine how to merge
     total_size  = 0
     num_objects = src_bucket.objects.with_prefix(src_prefix).count
+    return dest_bucket.objects[dest_key] if num_objects == 1 && src_bucket == dest_bucket && src_prefix == dest_key
+    raise ArgumentError, 'source and destination cannot be the same' if src_bucket == dest_bucket && src_prefix == dest_key
     src_bucket.objects.with_prefix(src_prefix).each do |source_object|
       total_size += source_object.content_length
     end
@@ -64,7 +66,7 @@ class S3Util
         DesmondConfig.logger.info "last_byte: #{last_byte}" unless DesmondConfig.logger.nil?
         # make sure we have at least MIN_PART_SIZE remaining bytes
         remaining_bytes = source_length - (last_byte + 1)
-        if remaining_bytes > 0 && remaining_bytes < MIN_PART_SIZE
+        if remaining_bytes > 0 && remaining_bytes < self::MIN_PART_SIZE
           last_byte = (source_length - pos) / 2 # if less than MIN_PART_SIZE would be left, make 2 equal parts
         end
         DesmondConfig.logger.info "last_byte: #{last_byte}" unless DesmondConfig.logger.nil?
