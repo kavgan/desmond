@@ -6,6 +6,8 @@ class S3Util
   # merges a folder of S3 objects into one single object
   #
   def self.merge_objects(src_bucket, src_prefix, dest_bucket, dest_key)
+    DesmondConfig.logger.info "S3Util.merge_objects with #{src_bucket}, #{src_prefix}, #{dest_bucket}, #{dest_key}" unless DesmondConfig.logger.nil?
+
     s3 = AWS::S3.new
     src_bucket  = s3.buckets[src_bucket]
     dest_bucket = s3.buckets[dest_bucket]
