@@ -1,0 +1,33 @@
+root = true
+
+# defaults over all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# documentation
+[*.md]
+indent_style = space
+indent_size = 4
+
+# ruby files
+[{*.rb,*.ru,Gemfile,Capfile,Rakefile,Guardfile}]
+indent_style = space
+indent_size = 2
+
+# config files
+[*.yml]
+indent_style = space
+indent_size = 2
+
+# javascript files
+[*.{js,coffee}]
+indent_style = space
+indent_size = 2
+
+# stylesheets
+[*.{css,scss}]
+indent_style = space
+indent_size = 2
