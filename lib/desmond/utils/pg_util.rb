@@ -45,14 +45,14 @@ module Desmond
     # escapes aregular string for SQL
     #
     def self.escape_string(str)
-      PG::Connection.escape_string(str)
+      PG::Connection.escape_string(str.to_s)
     end
 
     ##
     # escapes a SQL identifier
     #
     def self.escape_identifier(str)
-      PG::Connection.quote_ident(str)
+      PG::Connection.quote_ident(str.to_s)
     end
 
     ##
