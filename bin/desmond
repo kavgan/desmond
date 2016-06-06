@@ -15,8 +15,14 @@ current_dir = Dir.pwd
 options = { backtrace: true, log_dir: File.join(current_dir, 'log/') }
 options = options.merge(dir_mode: :normal, dir: ARGV[1]) if ARGV.size > 1
 Daemons.run_proc("desmond_for_#{DesmondConfig.app_id}", options) do
-  Dir.chdir(current_dir)
-  Rake.application.init
-  Rake.application.load_rakefile
-  Rake::Task['desmond:run'].invoke
+  begin
+    Dir.chdir(current_dir)
+    Rake.application.init
+    Rake.application.load_rakefile
+    Rake::Task['desmond:run'].invoke
+  rescue Exception => e
+    DesmondConfig.logger.error "Fatal error in desmond process: #{e.message}"
+    DesmondConfig.logger.error e.backtrace.join("\n\t")
+    raise
+  end
 end
