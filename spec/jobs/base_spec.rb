@@ -251,11 +251,22 @@ describe Desmond::BaseJob do
     expect(run.error).to eq('Expected behavior')
   end
 
-  it 'should ignore uncaught exception in hook' do
+  it 'should not ignore uncaught exception in before hook' do
     clazz = new_job do
       define_method(:before) do |job_run, job_id, user_id, options={}|
         fail 'Fatal error'
       end
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        fail 'Fatal error'
+      end
+    end
+    run = clazz.enqueue(1, 1)
+    expect(run.done?).to eq(false)
+    expect(run.error).to eq('Fatal error')
+  end
+
+  it 'should ignore uncaught exception in after hook' do
+    clazz = new_job do
       define_method(:after) do |job_run, job_id, user_id, options={}|
         fail 'Fatal error'
       end
@@ -391,14 +402,22 @@ describe Desmond::BaseJob do
         fail 'expected before'
       end
     end
+    clazz3 = new_job do
+      define_method(:after) do |job_run, job_id, user_id, options={}|
+        fail 'expected after'
+      end
+    end
     begin
       called = nil
       DesmondConfig.add_exception_notifier { |e, c, r| called = e }
       expect(clazz.enqueue(1, 1).failed?).to eq(true)
       expect(called.message).to eq('expected main')
       called = nil
-      expect(clazz2.enqueue(1, 1).failed?).to eq(false)
+      expect(clazz2.enqueue(1, 1).failed?).to eq(true)
       expect(called.message).to eq('expected before')
+      called = nil
+      expect(clazz3.enqueue(1, 1).failed?).to eq(false)
+      expect(called.message).to eq('expected after')
     ensure
       DesmondConfig.clear_exception_notifier
     end

@@ -177,7 +177,7 @@ module Desmond
         jr = job_run # cache job run
         jr.update(status: 'running', executed_at: Time.now)
       end
-      run_hook(:before)
+      run_hook(:before, hide_exceptions=false)
       log_job_event(:info, "Starting to execute job")
 
       if self.respond_to?(:execute)
@@ -234,7 +234,7 @@ module Desmond
     # runs the hook with the given +name+
     # swallows all exceptions, only logging them
     #
-    def run_hook(name)
+    def run_hook(name, hide_exceptions=true)
       if self.respond_to?(name.to_sym)
         jr = job_run
         arity = self.method(name.to_sym).arity
@@ -247,6 +247,7 @@ module Desmond
       Que.log level: :error, exception: e.message
       Que.log level: :error, backtrace: e.backtrace.join("\n ")
       DesmondConfig.send(:exception_notification, e, self.class, jr)
+      raise unless hide_exceptions
     end
 
     ##
