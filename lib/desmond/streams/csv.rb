@@ -134,7 +134,13 @@ module Desmond
             @skip_rows -= 1
             return self.read
           end
-          tmp = ::CSV.parse_line(tmp, @options)
+          begin
+            tmp = ::CSV.parse_line(tmp, @options)
+          rescue
+            puts "CSV parsing error on line: #{tmp}"
+            DesmondConfig.logger.error "CSV parsing error on line: #{tmp}"
+            raise
+          end
           # if the haven't parsed first_row headers yet, do it now
           if @headers == :first_row
             @headers = @options[:headers] = tmp
@@ -195,6 +201,19 @@ module Desmond
         # by supplying custom options.
         #
         def self.guess_and_create(reader, options={})
+          guess_lines = options.delete(:guess_lines) || 100
+          options = self.guess_separators(reader, guess_lines).merge(options)
+          reader.rewind
+          self.new(reader, options)
+        end
+
+        ##
+        # uses `guess_separators` to guess options and returns
+        # new instance of class using these. overwrite guesses
+        # by supplying custom options.
+        #
+        def self.guess_and_create_from_s3(bucket, key, options={})
+          reader = Desmond::Streams::S3::S3Reader.new(bucket, key, range: "bytes=0-#{5 * 1024 * 1024}")
           guess_lines = options.delete(:guess_lines) || 100
           options = self.guess_separators(reader, guess_lines).merge(options)
           reader.rewind

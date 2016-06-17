@@ -122,6 +122,7 @@ class S3Util
   def self.__merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size)
     writer = Desmond::Streams::S3::S3Writer.new(dest_bucket.name, dest_key)
     src_objects.each do |source_object|
+      DesmondConfig.logger.info "uploading #{source_object.key} (#{source_object.content_length})" unless DesmondConfig.logger.nil?
       source_object.read do |chunk|
         writer.write(chunk)
       end
