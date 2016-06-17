@@ -112,6 +112,11 @@ module Desmond
         reader.rewind
         self.new(reader, options)
       end
+
+      def self.guess_and_create_from_s3(bucket, key, options={})
+        reader = Desmond::Streams::S3::S3Reader.new(bucket, key, range: "bytes=0-#{options.fetch(:guess_bytes, 4096)}")
+        self.guess_and_create(reader, options)
+      end
     end
     class GzipReader < Reader
       def initialize(reader, options={})

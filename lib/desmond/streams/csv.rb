@@ -211,13 +211,12 @@ module Desmond
         # uses `guess_separators` to guess options and returns
         # new instance of class using these. overwrite guesses
         # by supplying custom options.
+        # this is more efficient when reading from s3 because
+        # s3 requires special read handling to only read a few bytes
         #
         def self.guess_and_create_from_s3(bucket, key, options={})
           reader = Desmond::Streams::S3::S3Reader.new(bucket, key, range: "bytes=0-#{5 * 1024 * 1024}")
-          guess_lines = options.delete(:guess_lines) || 100
-          options = self.guess_separators(reader, guess_lines).merge(options)
-          reader.rewind
-          self.new(reader, options)
+          self.guess_and_create(reader, options)
         end
       end
 
