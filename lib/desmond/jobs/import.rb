@@ -69,7 +69,8 @@ module Desmond
           bucket,
           s3_key,
           options[:s3])
-        r = Desmond::Streams::CSV::CSVReader.guess_and_create(s, options.fetch(:csv, {}))
+        s.close # we won't read from it
+        r = Desmond::Streams::CSV::CSVReader.guess_and_create_from_s3(bucket, s3_key, options.fetch(:csv, {}))
         headers = r.headers
         fail 'No CSV headers!' if headers.empty?
 
