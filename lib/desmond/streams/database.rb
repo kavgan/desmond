@@ -49,8 +49,9 @@ module Desmond
         ##
         # returns array of rows containing column values:
         # [ [value1, value2], ... ]
+        # NOTICE: this ignores any arguments, they are not supported when reading from database
         #
-        def read(*args) # ignoring any argument for now
+        def read(*args)
           self.init_cursor unless @init_cursor
 
           unless @buff.nil?
@@ -74,6 +75,7 @@ module Desmond
 
         def close
           self.execute(@closeq) if @init_cursor
+          @init_cursor = false
           DesmondConfig.logger.info "database time: #{@dbtime}, #{@dbcalls}" unless DesmondConfig.logger.nil?
         end
 
@@ -85,6 +87,8 @@ module Desmond
 
         def init_cursor
           @init_cursor = true
+          @buff = nil
+          @keys = nil
           start_time = Time.now
           self.execute(@initq)
           @dbtime += Time.now - start_time

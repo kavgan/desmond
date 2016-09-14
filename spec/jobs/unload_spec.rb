@@ -20,13 +20,13 @@ describe Desmond::UnloadJob do
     expect(result.result['manifest_file']).to eq("s3://#{options[:s3][:bucket]}/#{manifest_s3_key}")
 
     # Ensure manifest file exists.
-    bucket = AWS::S3.new.buckets[options[:s3][:bucket]]
-    expect(bucket.objects[manifest_s3_key].exists?).to eq(true)
+    bucket = Aws::S3::Bucket.new(options[:s3][:bucket])
+    expect(bucket.object(manifest_s3_key).exists?).to eq(true)
     # Ensure S3 files hold the table data.
     data = []
-    bucket.objects.each do |obj|
+    bucket.objects(prefix: @full_table_name).each do |obj|
       if obj.key =~ /#{Regexp.quote(options[:s3][:prefix])}[0-9]*_part_[0-9]*/
-        obj.read.split("\n").each do |line|
+        obj.get.body.read.split("\n").each do |line|
           d = line.split('|')
           data << line.split('|') unless d.empty?
         end
@@ -78,14 +78,14 @@ describe Desmond::UnloadJob do
         INSERT INTO #{@full_table_name} VALUES (0, 'hello'), (1, 'privyet'), (2, null);
     SQL
     conn.exec(create_sql)
-    @bucket = AWS::S3.new.buckets[@config[:unload_bucket]]
+    @bucket = Aws::S3::Bucket.new(@config[:unload_bucket])
   end
 
   after(:each) do
     # Drop test redshift table.
     conn.exec("DROP TABLE IF EXISTS #{@full_table_name}")
     # Clean up S3 files.
-    @bucket.objects.with_prefix(@full_table_name).delete_all
+    @bucket.objects(prefix: @full_table_name).each(&:delete)
   end
 
 end

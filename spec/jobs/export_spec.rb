@@ -27,7 +27,7 @@ describe Desmond::ExportJob do
         }
       }.deep_merge(options)
     )
-    AWS::S3.new.buckets[@config[:export_bucket]].objects[run.result['key']].delete unless run.failed? || options[:donotdelete]
+    Aws::S3::Bucket.new(@config[:export_bucket]).object(run.result['key']).delete unless run.failed? || options[:donotdelete]
     run
   end
 
@@ -40,8 +40,8 @@ describe Desmond::ExportJob do
     s3_obj = nil
     csv = nil
     begin
-      s3_obj = AWS::S3.new.buckets[@config[:export_bucket]].objects[run.result['key']]
-      csv = s3_obj.read
+      s3_obj = Aws::S3::Bucket.new(@config[:export_bucket]).object(run.result['key'])
+      csv = s3_obj.get.body.read
     ensure
       s3_obj.delete
     end

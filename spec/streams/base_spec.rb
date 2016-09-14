@@ -65,7 +65,7 @@ describe Desmond::Streams::LineReader do
   end
 
   it 'should set eof' do
-    while not(@reader.read.nil?) do
+    while not((data = @reader.read).nil?) do
     end
     expect(@reader.eof?).to eq(true)
   end

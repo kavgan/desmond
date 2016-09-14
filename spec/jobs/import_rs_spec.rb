@@ -15,7 +15,8 @@ describe Desmond::ImportJob do
     s3_obj = nil
     run = nil
     begin
-      s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, File.read(file))
+      s3_obj = Aws::S3::Bucket.new(@config[:import_bucket]).object(unique_name)
+      s3_obj.put(body: File.read(file))
 
       run = Desmond::ImportJob.enqueue('JobId', 'UserId', {
           db: {
@@ -35,7 +36,7 @@ describe Desmond::ImportJob do
       #fail run.error if run.failed?
     ensure
       s3_obj.delete unless s3_obj.nil?
-      rewrite_s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects[unique_name + 'rewrite']
+      rewrite_s3_obj = Aws::S3::Bucket.new(@config[:import_bucket]).object(unique_name + 'rewrite')
       rewrite_s3_obj.delete if rewrite_s3_obj.exists?
     end
     return run, unique_name

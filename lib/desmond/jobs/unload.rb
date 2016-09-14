@@ -45,9 +45,9 @@ module Desmond
       fail 'Empty prefix name!' if prefix.nil? || prefix.empty?
 
       # s3 credentials for the bucket to unload to
-      access_key = options[:s3][:access_key_id] || AWS.config.access_key_id
+      access_key = options[:s3][:access_key_id] || Aws.config[:access_key_id]
       fail 'Empty access key!' if access_key.nil? || access_key.empty?
-      secret_key = options[:s3][:secret_access_key] || AWS.config.secret_access_key
+      secret_key = options[:s3][:secret_access_key] || Aws.config[:secret_access_key]
       fail 'Empty secret key!' if secret_key.nil? || secret_key.empty?
 
       # construct full escaped table name

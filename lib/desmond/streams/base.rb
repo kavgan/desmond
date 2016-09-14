@@ -74,19 +74,41 @@ module Desmond
           newline: "\n"
         }.merge(options.delete_if { |_, v| v.nil? })
         @reader_obj = reader
+        @buffer     = ''
       end
 
       def read(*args) # ignoring any argument for now
-        next_line = @reader_obj.gets(@options[:newline])
-        if !next_line.nil? && @options[:newline] == "\n" && next_line.ends_with?("\r\n")
-          # spark likes to write the header with a different line separator, oh what a joy :)
-          next_line = next_line.strip + "\n"
+        read_line = nil
+        while read_line.nil?
+          unless @reader_obj.eof?
+            @buffer += @reader_obj.read(DEFAULT_BLOCK_SIZE)
+          end
+          newline_pos = @buffer.index(@options[:newline])
+          if newline_pos.present?
+            read_line = @buffer[0...(newline_pos + @options[:newline].size)]
+            @buffer.slice!(0...(newline_pos + @options[:newline].size))
+            break
+          elsif @reader_obj.eof?
+            break
+          end
         end
-        return next_line
+
+        # check if there is trailing data without a newline that should be returned
+        if read_line.nil? && @reader_obj.eof? && !@buffer.empty?
+          read_line = @buffer.dup
+          @buffer = ''
+        end
+
+        # spark likes to write the header with a different line separator, oh what a joy :)
+        if !read_line.nil? && @options[:newline] == "\n" && read_line.ends_with?("\r\n")
+          read_line = read_line.strip + "\n"
+        end
+
+        return read_line
       end
 
       def eof?
-        @reader_obj.eof?
+        @reader_obj.eof? && @buffer.empty?
       end
 
       def close
@@ -154,8 +176,16 @@ module Desmond
         fail NotImplementedError
       end
 
-      def <<(data)
-        self.write(data)
+      def <<(obj)
+        self.write(obj.to_s)
+      end
+
+      def rewind
+        fail NotImplementedError
+      end
+
+      def flush
+        fail NotImplementedError
       end
 
       def close

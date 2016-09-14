@@ -14,7 +14,8 @@ describe Desmond::ImportJob do
     s3_obj = nil
     run = nil
     begin
-      s3_obj = AWS::S3.new.buckets[@config[:import_bucket]].objects.create(unique_name, File.read(file))
+      s3_obj = Aws::S3::Bucket.new(@config[:import_bucket]).object(unique_name)
+      s3_obj.put(body: File.read(file))
 
       run = Desmond::ImportJob.enqueue('JobId', 'UserId', {
           db: {

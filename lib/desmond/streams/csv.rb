@@ -157,10 +157,6 @@ module Desmond
           tmp
         end
 
-        def gets
-          self.read
-        end
-
         ##
         # reached the end of file?
         #

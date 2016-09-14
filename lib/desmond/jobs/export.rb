@@ -72,7 +72,7 @@ module Desmond
       fail ArgumentError, "Can't use query separator!" unless raw_query.index(';').nil?
       unload_query  = "select * from (#{raw_query})"
       headers_query = "select * from (#{raw_query}) limit 0" # this is valid in PG & Redshift and won't use any resources compared to limit 1
-      s3 = AWS::S3.new(options[:s3])
+      s3_bucket_obj = Aws::S3::Bucket.new(s3_bucket)
       col_sep = self.options.fetch(:csv, {})[:col_sep] || '|'
 
       # TODO SQL errors shouldn't send exception emails
@@ -96,8 +96,9 @@ module Desmond
         rs_conn = PGUtil.dedicated_connection(self.options[:db])
         headers = rs_conn.exec(headers_query).try(:fields)
         # write headers to S3 file to be merged
-        s3.buckets[s3_bucket].objects.create(s3_key_parallel_unload + '00000__headers',
-          headers.join(col_sep) + "\n")
+        s3_bucket_obj.object(s3_key_parallel_unload + '00000__headers').put(
+          body: headers.join(col_sep) + "\n"
+        )
       end
 
       # merge the parallel unloaded files on the S3 server
@@ -108,7 +109,7 @@ module Desmond
     ensure
       rs_conn.close unless rs_conn.nil?
       # delete the parallel unloaded files
-      s3.buckets[s3_bucket].objects.with_prefix(s3_key_parallel_unload).delete_all unless s3.nil?
+      s3_bucket_obj.objects(prefix: s3_key_parallel_unload).each(&:delete) unless s3_bucket_obj.nil?
     end
   end
 end

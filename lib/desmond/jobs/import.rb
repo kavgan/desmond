@@ -68,7 +68,7 @@ module Desmond
         s = Desmond::Streams::S3::S3Reader.new(
           bucket,
           s3_key,
-          options[:s3])
+          options[:s3].reject { |k| [ :bucket, :key ].include?(k) })
         s.close # we won't read from it
         r = Desmond::Streams::CSV::CSVReader.guess_and_create_from_s3(bucket, s3_key, options.fetch(:csv, {}))
         headers = r.headers
@@ -149,7 +149,7 @@ module Desmond
     end
 
     def import_general(conn, raw_table_name, table_name, array_reader, s3_reader, options={})
-      statement_name = "desmond_#{raw_table_name}"
+      statement_name = "import_#{raw_table_name}"
       placeholders = []
       i = 1
       headers = array_reader.headers
@@ -187,7 +187,7 @@ module Desmond
         new_s3_key = new_s3_key[2..-1]
       end
       csv_writer = Streams::CSV::CSVWriter.new(
-        Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3]),
+        Streams::S3::S3Writer.new(s3_bucket, new_s3_key, options[:s3].reject { |k| [ :bucket, :key ].include?(k) }),
         options.fetch(:csv).merge(row_sep: SAFE_ROW_SEP)
       )
       Streams::Utils.pipe(csv_reader, csv_writer)
