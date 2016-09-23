@@ -63,7 +63,7 @@ module Desmond
       aws_credentials = options[:s3].select { |key| [:access_key_id, :secret_access_key].include?(key) }
       s3_bucket = options[:s3][:bucket]
       s3_key = options[:s3][:key] || job_run.filename
-      s3_key_parallel_unload = "#{s3_key}/"
+      s3_key_parallel_unload = "export_tmp_#{s3_key}/"
       fail ArgumentError, 'No S3 export bucket!' if s3_bucket.nil? || s3_bucket.empty?
 
       raw_query = self.options[:db][:query].strip

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'desmond'
-  s.version     = '0.3.0'
+  s.version     = '0.3.1'
   s.date        = '2015-03-31'
   s.summary     = 'Background tasks & CSV Export/Import'
   s.description = 'Background tasks & Exporting and importing data out of Amazon AWS RedShift'
@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency 'activerecord', '~> 4.2' # used together with 'pg' to store information about jobs
   s.add_runtime_dependency 'activesupport', '~> 4.2' # hash symbolize extensions
-  s.add_runtime_dependency 'pg', '>= 0.17', '< 0.19' # used to connect to RedShift directly
+  s.add_runtime_dependency 'pg', '>= 0.17', '< 0.20' # used to connect to RedShift directly
   s.add_runtime_dependency 'que', '~> 0.9' # background jobs
   s.add_runtime_dependency 'daemons', '~> 1.1' # background processes
   s.add_runtime_dependency 'aws-sdk', '~> 2.5' # s3 access (v2 is still in preview release)
