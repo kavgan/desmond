@@ -168,11 +168,11 @@ module Desmond
         def close
           self.flush
           if @multipart_parts.blank?
-            DesmondConfig.logger.debug "aborting multipart upload since there are no parts" unless DesmondConfig.logger.nil?
+            DesmondConfig.logger.debug "aborting stream upload since there are no parts" unless DesmondConfig.logger.nil?
             @multipart_upload.abort
             @multipart_upload = nil
           else
-            DesmondConfig.logger.debug "finishing multipart upload: #{@multipart_parts}" unless DesmondConfig.logger.nil?
+            DesmondConfig.logger.debug "finishing stream upload: #{@multipart_parts}" unless DesmondConfig.logger.nil?
             @multipart_upload.complete(multipart_upload: { parts: @multipart_parts })
           end
           DesmondConfig.logger.info "S3 write time: #{@s3time}, #{@s3calls}" unless DesmondConfig.logger.nil?

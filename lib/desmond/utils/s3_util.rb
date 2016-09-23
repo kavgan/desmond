@@ -5,11 +5,15 @@ class S3Util
   ##
   # merges a folder of S3 objects into one single object
   #
-  def self.merge_objects(src_bucket, src_prefix, dest_bucket, dest_key)
+  # opts supported keys:
+  # - access_key_id
+  # - secret_access_key
+  #
+  def self.merge_objects(src_bucket, src_prefix, dest_bucket, dest_key, opts={})
     DesmondConfig.logger.info "S3Util.merge_objects with #{src_bucket}, #{src_prefix}, #{dest_bucket}, #{dest_key}" unless DesmondConfig.logger.nil?
 
-    src_bucket  = Aws::S3::Bucket.new(src_bucket)
-    dest_bucket = Aws::S3::Bucket.new(dest_bucket)
+    src_bucket  = Aws::S3::Bucket.new(src_bucket,  opts)
+    dest_bucket = Aws::S3::Bucket.new(dest_bucket, opts)
 
     # calcluate total size to determine how to merge
     total_size  = 0
@@ -24,9 +28,9 @@ class S3Util
     # do the merge
     # if every source object is approximatly bigger than the S3 multipart upload threshold, we do a multipart
     if total_size <= num_objects * MIN_PART_SIZE
-      __merge_objects_normal(src_bucket, src_objects, dest_bucket, dest_key, total_size)
+      __merge_objects_normal(src_bucket, src_objects, dest_bucket, dest_key, src_prefix, total_size, opts)
     else
-      __merge_objects_multipart(src_bucket, src_objects, dest_bucket, dest_key, total_size)
+      __merge_objects_multipart(src_bucket, src_objects, dest_bucket, dest_key, src_prefix, total_size, opts)
     end
   end
 
@@ -34,9 +38,9 @@ class S3Util
   # strategy: the total size of all source objects is rather small (< 5MB), so we download them all
   #           and reupload them allat once concatenated
   #
-  def self.__merge_objects_normal(src_bucket, src_objects, dest_bucket, dest_key, total_size)
+  def self.__merge_objects_normal(src_bucket, src_objects, dest_bucket, dest_key, src_prefix, total_size, opts={})
     DesmondConfig.logger.info 'using download copy' unless DesmondConfig.logger.nil?
-    return __merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size)
+    return __merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size, opts)
   end
   private_class_method :__merge_objects_normal
 
@@ -44,11 +48,13 @@ class S3Util
   # strategy: the total size of all source object can be large (> 5MB), so we tell S3 to copy them
   #           without ever downloading them.
   #
-  def self.__merge_objects_multipart(src_bucket, src_objects, dest_bucket, dest_key, total_size)
+  def self.__merge_objects_multipart(src_bucket, src_objects, dest_bucket, dest_key, src_prefix, total_size, opts={})
     DesmondConfig.logger.info 'using multipart copy' unless DesmondConfig.logger.nil?
     # premerge objects which might be too small
-    __prepare_objects_for_multipart(src_bucket, src_objects)
+    __prepare_objects_for_multipart(src_bucket, src_objects, src_prefix, opts)
     DesmondConfig.logger.info 'premerge done' unless DesmondConfig.logger.nil?
+    # reloading src_objects after premerging
+    src_objects = src_bucket.objects(prefix: src_prefix).each.to_a
     # first, figure out which parts we'll have
     parts         = []
     max_part_size = self::MAX_COPY_SIZE
@@ -109,7 +115,7 @@ class S3Util
   # S3 multipart upload only allows the last part to be smaller than `AWS.config.s3_multipart_min_part_size`.
   # if some other objects are smaller this method tries to merge them together with the following one.
   #
-  def self.__prepare_objects_for_multipart(src_bucket, src_objects)
+  def self.__prepare_objects_for_multipart(src_bucket, src_objects, src_prefix, opts={})
     objects = src_objects
     for i in 0...objects.count
       next if objects[i].content_length == 0
@@ -117,10 +123,12 @@ class S3Util
         object1 = objects[i]
         object2 = objects[i + 1]
         DesmondConfig.logger.info "premerging #{object1.key} (#{object1.content_length}) and #{object2.key} (#{object2.content_length})" unless DesmondConfig.logger.nil?
-        __merge_objects_normal_internal([object1, object2], src_bucket, object2.key + '_merged', object1.content_length + object2.content_length)
+        __merge_objects_normal_internal([object1, object2], src_bucket, object2.key + '_merged', object1.content_length + object2.content_length, opts)
         object1.delete
         object2.delete
-        return __prepare_objects_for_multipart(src_bucket, src_objects)
+        # reloading src_objects
+        src_objects = src_bucket.objects(prefix: src_prefix).each.to_a
+        return __prepare_objects_for_multipart(src_bucket, src_objects, src_prefix, opts)
       end
     end
   end
@@ -130,8 +138,8 @@ class S3Util
   # takes an iterable collection of +src_objects+ and merge them into +dest_bucket+/+dest_key+
   # by downloading and reuploading them.
   #
-  def self.__merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size)
-    writer = Desmond::Streams::S3::S3Writer.new(dest_bucket.name, dest_key)
+  def self.__merge_objects_normal_internal(src_objects, dest_bucket, dest_key, total_size, opts={})
+    writer = Desmond::Streams::S3::S3Writer.new(dest_bucket.name, dest_key, opts)
     src_objects.each do |source_object|
       DesmondConfig.logger.info "uploading #{source_object.key} (#{source_object.content_length})" unless DesmondConfig.logger.nil?
       source_object.get do |chunk|

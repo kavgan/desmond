@@ -48,8 +48,6 @@ module Desmond
     # - db
     #   - fetch_size: how many rows are retrieved in one iteration
     #   - timeout: connection timeout to database
-    # - s3
-    #   - everything supported by AWS::S3.new
     # - csv (see ruby's CSV documentation)
     #   - col_sep
     #   - return_headers
@@ -62,6 +60,7 @@ module Desmond
         return PGExportJob.run(self.job_id, self.user_id, self.options)
       end
       fail ArgumentError, 'No s3 options!' if options[:s3].nil?
+      aws_credentials = options[:s3].select { |key| [:access_key_id, :secret_access_key].include?(key) }
       s3_bucket = options[:s3][:bucket]
       s3_key = options[:s3][:key] || job_run.filename
       s3_key_parallel_unload = "#{s3_key}/"
@@ -71,11 +70,10 @@ module Desmond
       raw_query = raw_query[0..-2] if raw_query.end_with?(';')
       fail ArgumentError, "Can't use query separator!" unless raw_query.index(';').nil?
       unload_query  = "select * from (#{raw_query})"
-      headers_query = "select * from (#{raw_query}) limit 0" # this is valid in PG & Redshift and won't use any resources compared to limit 1
+      # this is valid in PG & Redshift and won't use any resources compared to limit 1
+      headers_query = "select * from (#{raw_query}) limit 0"
       s3_bucket_obj = Aws::S3::Bucket.new(s3_bucket)
       col_sep = self.options.fetch(:csv, {})[:col_sep] || '|'
-
-      # TODO SQL errors shouldn't send exception emails
 
       # do a parallel unload of all the data
       UnloadJob.run(self.job_id, self.user_id, {
@@ -102,7 +100,7 @@ module Desmond
       end
 
       # merge the parallel unloaded files on the S3 server
-      S3Util.merge_objects(s3_bucket, s3_key_parallel_unload, s3_bucket, s3_key)
+      S3Util.merge_objects(s3_bucket, s3_key_parallel_unload, s3_bucket, s3_key, aws_credentials)
 
       # everything is done
       { bucket: s3_bucket, key: s3_key, access_key: options[:s3][:access_key_id] }
