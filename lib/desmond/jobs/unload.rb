@@ -73,6 +73,7 @@ module Desmond
           unload_options += " NULL AS '#{PGUtil.escape_string(options[:unload][:null_as])}'"
         end
       end
+
       unload_sql = <<-SQL
           UNLOAD ('#{query}')
           TO 's3://#{bucket}/#{prefix}'

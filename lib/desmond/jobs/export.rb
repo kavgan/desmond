@@ -72,7 +72,7 @@ module Desmond
       unload_query  = "select * from (#{raw_query})"
       # this is valid in PG & Redshift and won't use any resources compared to limit 1
       headers_query = "select * from (#{raw_query}) limit 0"
-      s3_bucket_obj = Aws::S3::Bucket.new(s3_bucket)
+      s3_bucket_obj = Aws::S3::Bucket.new(s3_bucket, aws_credentials)
       col_sep = self.options.fetch(:csv, {})[:col_sep] || '|'
 
       # do a parallel unload of all the data
